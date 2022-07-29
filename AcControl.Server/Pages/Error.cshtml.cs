@@ -8,11 +8,11 @@ namespace AcControl.Server.Pages
     [IgnoreAntiforgeryToken]
     public class ErrorModel : PageModel
     {
+        private readonly ILogger<ErrorModel> _logger;
+
         public string? RequestId { get; set; }
 
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-
-        private readonly ILogger<ErrorModel> _logger;
+        public bool ShowRequestId => !string.IsNullOrEmpty(this.RequestId);
 
         public ErrorModel(ILogger<ErrorModel> logger)
         {
@@ -21,7 +21,7 @@ namespace AcControl.Server.Pages
 
         public void OnGet()
         {
-            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+            this.RequestId = Activity.Current?.Id ?? this.HttpContext.TraceIdentifier;
         }
     }
 }
