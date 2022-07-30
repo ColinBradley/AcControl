@@ -1,0 +1,124 @@
+﻿@page "/ac"
+
+@using AcControl.Server.Data
+@implements IDisposable
+@inject ToshibaAcMqttService AcMqttService
+@inject DevicesService AcDevicesService
+
+<PageTitle>Oal Home AC</PageTitle>
+
+@code {
+    private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
+    {
+        ("Auto", AirConditionerMode.Auto),
+        ("Cool", AirConditionerMode.Cool),
+        ("Dry", AirConditionerMode.Dry),
+        ("Fan", AirConditionerMode.Fan),
+        ("Heat", AirConditionerMode.Heat),
+    };
+
+    private bool mIsInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.AcDevicesService.Changed += this.AcDevicesService_Changed;
+
+        await this.AcDevicesService.Subscribe();
+
+        mIsInitialized = true;
+    }
+
+    private async Task PowerButton_Clicked(AcUnitModel unit)
+    {
+        var newState = unit.TogglePower();
+
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void TargetTemp_Changed(AcUnitModel unit, ChangeEventArgs e)
+    {
+        var newState = unit.SetTargetTemp(Int32.Parse((string)e.Value));
+
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void Mode_Changed(AcUnitModel unit, ChangeEventArgs e)
+    {
+        var newMode = (string)e.Value switch
+        {
+            "Cool" => AirConditionerMode.Cool,
+            "Dry" => AirConditionerMode.Dry,
+            "Fan" => AirConditionerMode.Fan,
+            "Heat" => AirConditionerMode.Heat,
+            _ => AirConditionerMode.Auto,
+        };
+
+        var newState = unit.SetMode(newMode);
+        
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void AcDevicesService_Changed()
+    {
+        await this.InvokeAsync(() =>
+        {
+            this.StateHasChanged();
+        });
+    }   
+
+    public void Dispose()
+    {
+        this.AcDevicesService.Changed -= this.AcDevicesService_Changed;
+        this.AcDevicesService.Unsubscribe();
+    }
+}
+
+<h1>AC Units</h1>
+
+@if (!mIsInitialized)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="devices">
+        @foreach(var unit in this.AcDevicesService)
+        {
+            var currentMode = unit.Mode.Current switch {
+                AirConditionerMode.Auto => "Auto",
+                AirConditionerMode.Cool => "Cool",
+                AirConditionerMode.Dry => "Dry",
+                AirConditionerMode.Fan => "Fan",
+                AirConditionerMode.Heat => "Heat",
+                _ => "Unknown"
+            };
+
+            <div class="device">
+                <div class="horizontal">
+                    <h2>@unit.Name</h2>
+                    <button class="power @(unit.PowerStatus.Target == PowerState.On ? "on" : "off")" @onclick="() => PowerButton_Clicked(unit)">
+                    </button>
+                </div>
+                <div class="horizontal" style="gap:.5em;">
+                    <div class="icon" style="-webkit-mask-image:url('/icons/fan.svg')"></div>
+                    <select @onchange="e => this.Mode_Changed(unit, e)">
+                        @foreach(var (modeString, modeEnum) in MODE_OPTIONS)
+                        {
+                            <option value="@modeString" selected="@(modeEnum == unit.Mode.Current)">@modeString</option>
+                        }
+                    </select>
+                </div>
+                <div class="horizontal" style="gap:.5em;">
+                    <div class="icon" style="-webkit-mask-image:url('/icons/thermostat.svg')"></div>
+                    <select @onchange="e => this.TargetTemp_Changed(unit, e)">
+                        @foreach(var temp in Enumerable.Range(17, 14).Reverse())
+                        {
+                            <option value="@temp" selected="@(temp == unit.TargetTemperature.Current)">@temp°C</option>
+                        }
+                    </select>
+                </div>
+                <div>Current: @unit.IndoorTemperature.Current°C</div>
+            </div>
+        }
+    </div>
+}

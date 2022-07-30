@@ -1,0 +1,66 @@
+h1 {
+	font-size: 2em;
+}
+
+.devices {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 2em;
+	margin-top: 2em;
+}
+
+	.devices > .device {
+		min-width: 13em;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1em;
+		padding: 1em;
+		background-color: #333;
+		border-radius: .3em;
+		filter: drop-shadow(2px 4px 6px #000);
+	}
+
+		.devices > .device h2 {
+			margin-bottom: 0;
+			font-size: 1.5em;
+		}
+
+		.devices > .device .horizontal {
+			display: flex;
+			gap: 1em;
+			align-items: center;
+			justify-content: space-evenly;
+		}
+
+		.devices > .device button.power {
+			min-width: 2em;
+			min-height: 2em;
+			-webkit-mask-image: url("/icons/power.svg");
+			mask-image: url("/icons/power.svg");
+			-webkit-mask-size: contain;
+			mask-size: contain;
+			border: none;
+			background-color: #eb5d5d;
+		}
+
+			.devices > .device button.power.on {
+				background-color: #5abd5a;
+			}
+
+		.devices > .device .icon {
+			width: 2em;
+			height: 2em;
+			-webkit-mask-size: contain;
+			mask-size: contain;
+			background-color: #ccc;
+		}
+
+		.devices > .device select {
+			padding: .3em 1em;
+			background-color: #444;
+			color: #ccc;
+			border: none;
+			font-size: 1em;
+		}

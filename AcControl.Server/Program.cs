@@ -21,10 +21,10 @@ builder.Services
 
 builder.Services
     .AddAuthorization(options =>
-{
-    // By default, all incoming requests will be authorized according to the default policy
-    options.FallbackPolicy = options.DefaultPolicy;
-});
+    {
+        // By default, all incoming requests will be authorized according to the default policy
+        options.FallbackPolicy = options.DefaultPolicy;
+    });
 
 builder.Services
     .AddRazorPages();
@@ -34,10 +34,15 @@ builder.Services
     .AddMicrosoftIdentityConsentHandler();
 
 builder.Services
-    .AddSingleton<WeatherForecastService>();
+    .AddSingleton<DevicesService>()
+    .AddSingleton<ToshibaAcHttpService>()
+    .AddSingleton<ToshibaAcMqttService>();
 
 builder.Services
-    .AddApplicationInsightsTelemetry(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
+    .AddApplicationInsightsTelemetry(options =>
+    {
+        options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    });
 
 var app = builder.Build();
 
