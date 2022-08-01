@@ -10,11 +10,12 @@ namespace AcControl.Server.Data
         //private const string GET_UNIT_STATE_PATH = "/api/AC/GetCurrentACState";
         private const string REGISTER_DEVICE_PATH = "/api/Consumer/RegisterMobileDevice";
 
-        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpClientFactory mHttpClientFactory;
 
         public ToshibaAcHttpService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
-            _httpClientFactory = httpClientFactory;
+            mHttpClientFactory = httpClientFactory;
+
             this.Username = configuration.GetValue<string>("Toshiba:Username");
             this.Password = configuration.GetValue<string>("Toshiba:Password");
             this.DeviceId = configuration.GetValue<string>("Toshiba:DeviceId");
@@ -32,7 +33,7 @@ namespace AcControl.Server.Data
 
         public async Task<LoginSuccessResponse> TryGetAccessToken(CancellationToken cancellationToken)
         {
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = mHttpClientFactory.CreateClient();
 
             var result = await httpClient.PostAsJsonAsync(
                 BASE_ADDRESS + LOGIN_PATH,
@@ -47,7 +48,7 @@ namespace AcControl.Server.Data
 
         public async Task<AirConditionerUnitDetails[]> GetAirConditionerUnits(CancellationToken cancellationToken)
         {
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = mHttpClientFactory.CreateClient();
             var login = await this.LoginToken.Value;
 
             var request = new HttpRequestMessage(HttpMethod.Get, BASE_ADDRESS + MAPPING_PATH + "?consumerId=" + login.ConsumerId);
@@ -62,12 +63,13 @@ namespace AcControl.Server.Data
 
         public async Task<DeviceRegistration> RegisterDevice(CancellationToken cancellationToken)
         {
-            var httpClient = _httpClientFactory.CreateClient();
+            var httpClient = mHttpClientFactory.CreateClient();
             var login = await this.LoginToken.Value;
 
             var request = new HttpRequestMessage(HttpMethod.Post, BASE_ADDRESS + REGISTER_DEVICE_PATH);
             request.Headers.Add("Authorization", $"Bearer {login.AccessToken}");
-            request.Content = JsonContent.Create(new RegisterDeviceBody() {
+            request.Content = JsonContent.Create(new RegisterDeviceBody()
+            {
                 Username = this.Username,
                 DeviceId = this.DeviceId,
             });

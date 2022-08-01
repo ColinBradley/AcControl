@@ -7,73 +7,7 @@
 
 <PageTitle>Oal Home AC</PageTitle>
 
-@code {
-    private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
-    {
-        ("Auto", AirConditionerMode.Auto),
-        ("Cool", AirConditionerMode.Cool),
-        ("Dry", AirConditionerMode.Dry),
-        ("Fan", AirConditionerMode.Fan),
-        ("Heat", AirConditionerMode.Heat),
-    };
-
-    private bool mIsInitialized = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        this.AcDevicesService.Changed += this.AcDevicesService_Changed;
-
-        await this.AcDevicesService.Subscribe();
-
-        mIsInitialized = true;
-    }
-
-    private async Task PowerButton_Clicked(AcUnitModel unit)
-    {
-        var newState = unit.TogglePower();
-
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
-
-    private async void TargetTemp_Changed(AcUnitModel unit, ChangeEventArgs e)
-    {
-        var newState = unit.SetTargetTemp(Int32.Parse((string)e.Value));
-
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
-
-    private async void Mode_Changed(AcUnitModel unit, ChangeEventArgs e)
-    {
-        var newMode = (string)e.Value switch
-        {
-            "Cool" => AirConditionerMode.Cool,
-            "Dry" => AirConditionerMode.Dry,
-            "Fan" => AirConditionerMode.Fan,
-            "Heat" => AirConditionerMode.Heat,
-            _ => AirConditionerMode.Auto,
-        };
-
-        var newState = unit.SetMode(newMode);
-        
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
-
-    private async void AcDevicesService_Changed()
-    {
-        await this.InvokeAsync(() =>
-        {
-            this.StateHasChanged();
-        });
-    }   
-
-    public void Dispose()
-    {
-        this.AcDevicesService.Changed -= this.AcDevicesService_Changed;
-        this.AcDevicesService.Unsubscribe();
-    }
-}
-
-<h1>AC Units</h1>
+<h1>AC Units!!!!!</h1>
 
 @if (!mIsInitialized)
 {
@@ -121,4 +55,70 @@ else
             </div>
         }
     </div>
+}
+
+@code {
+    private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
+    {
+        ("Auto", AirConditionerMode.Auto),
+        ("Cool", AirConditionerMode.Cool),
+        ("Dry", AirConditionerMode.Dry),
+        ("Fan", AirConditionerMode.Fan),
+        ("Heat", AirConditionerMode.Heat),
+    };
+
+    private bool mIsInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.AcDevicesService.Changed += this.AcDevicesService_Changed;
+
+        await this.AcDevicesService.Subscribe();
+
+        mIsInitialized = true;
+    }
+
+    private async Task PowerButton_Clicked(AcUnitModel unit)
+    {
+        var newState = unit.TogglePower();
+
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void TargetTemp_Changed(AcUnitModel unit, ChangeEventArgs e)
+    {
+        var newState = unit.SetTargetTemp(Int32.Parse((string)e.Value!));
+
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void Mode_Changed(AcUnitModel unit, ChangeEventArgs e)
+    {
+        var newMode = (string)e.Value! switch
+        {
+            "Cool" => AirConditionerMode.Cool,
+            "Dry" => AirConditionerMode.Dry,
+            "Fan" => AirConditionerMode.Fan,
+            "Heat" => AirConditionerMode.Heat,
+            _ => AirConditionerMode.Auto,
+        };
+
+        var newState = unit.SetMode(newMode);
+        
+        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+    }
+
+    private async void AcDevicesService_Changed()
+    {
+        await this.InvokeAsync(() =>
+        {
+            this.StateHasChanged();
+        });
+    }   
+
+    public void Dispose()
+    {
+        this.AcDevicesService.Changed -= this.AcDevicesService_Changed;
+        this.AcDevicesService.Unsubscribe();
+    }
 }
