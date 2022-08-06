@@ -2,6 +2,12 @@ h1 {
 	font-size: 2em;
 }
 
+.ac-header {
+	display: flex;
+	align-items: center;
+
+}
+
 .devices {
 	display: flex;
 	flex-wrap: wrap;

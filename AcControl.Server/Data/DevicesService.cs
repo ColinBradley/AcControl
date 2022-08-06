@@ -26,6 +26,8 @@
             mTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
         }
 
+        public int? OutsideTemp => mUnitsById.Values.FirstOrDefault()?.OutdoorTemperature.Current;
+
         public async Task Subscribe()
         {
             if (Interlocked.Increment(ref mSubscriptionCount) != 1)

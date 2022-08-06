@@ -5,8 +5,6 @@
 @inject ToshibaAcMqttService AcMqttService
 @inject DevicesService AcDevicesService
 
-<PageTitle>Oal Home AC</PageTitle>
-
 @code {
     private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
     {
@@ -73,52 +71,56 @@
     }
 }
 
-<h1>AC Units</h1>
+<PageTitle>Oal Home AC</PageTitle>
 
 @if (!mIsInitialized)
 {
     <p><em>Loading...</em></p>
+    return;
 }
-else
-{
-    <div class="devices">
-        @foreach(var unit in this.AcDevicesService)
-        {
-            var currentMode = unit.Mode.Current switch {
-                AirConditionerMode.Auto => "Auto",
-                AirConditionerMode.Cool => "Cool",
-                AirConditionerMode.Dry => "Dry",
-                AirConditionerMode.Fan => "Fan",
-                AirConditionerMode.Heat => "Heat",
-                _ => "Unknown"
-            };
 
-            <div class="device">
-                <div class="horizontal">
-                    <h2>@unit.Name</h2>
-                    <button class="power @(unit.PowerStatus.Target == PowerState.On ? "on" : "off")" @onclick="() => PowerButton_Clicked(unit)">
-                    </button>
-                </div>
-                <div class="horizontal" style="gap:.5em;">
-                    <div class="icon" style="-webkit-mask-image:url('/icons/fan.svg')"></div>
-                    <select @onchange="e => this.Mode_Changed(unit, e)">
-                        @foreach(var (modeString, modeEnum) in MODE_OPTIONS)
-                        {
-                            <option value="@modeString" selected="@(modeEnum == unit.Mode.Current)">@modeString</option>
-                        }
-                    </select>
-                </div>
-                <div class="horizontal" style="gap:.5em;">
-                    <div class="icon" style="-webkit-mask-image:url('/icons/thermostat.svg')"></div>
-                    <select @onchange="e => this.TargetTemp_Changed(unit, e)">
-                        @foreach(var temp in Enumerable.Range(17, 14).Reverse())
-                        {
-                            <option value="@temp" selected="@(temp == unit.TargetTemperature.Current)">@temp°C</option>
-                        }
-                    </select>
-                </div>
-                <div>Current: @unit.IndoorTemperature.Current°C</div>
+<div class="ac-header">
+    <h1>AC Units</h1>
+    <div>Outside: @(this.AcDevicesService.OutsideTemp?.ToString() ?? "?")°C</div>
+</div>
+
+<div class="devices">
+    @foreach(var unit in this.AcDevicesService)
+    {
+        var currentMode = unit.Mode.Current switch {
+            AirConditionerMode.Auto => "Auto",
+            AirConditionerMode.Cool => "Cool",
+            AirConditionerMode.Dry => "Dry",
+            AirConditionerMode.Fan => "Fan",
+            AirConditionerMode.Heat => "Heat",
+            _ => "Unknown"
+        };
+
+        <div class="device">
+            <div class="horizontal">
+                <h2>@unit.Name</h2>
+                <button class="power @(unit.PowerStatus.Target == PowerState.On ? "on" : "off")" @onclick="() => this.PowerButton_Clicked(unit)">
+                </button>
             </div>
-        }
-    </div>
-}
+            <div class="horizontal" style="gap:.5em;">
+                <div class="icon" style="-webkit-mask-image:url('/icons/fan.svg')"></div>
+                <select @onchange="e => this.Mode_Changed(unit, e)">
+                    @foreach(var (modeString, modeEnum) in MODE_OPTIONS)
+                    {
+                        <option value="@modeString" selected="@(modeEnum == unit.Mode.Current)">@modeString</option>
+                    }
+                </select>
+            </div>
+            <div class="horizontal" style="gap:.5em;">
+                <div class="icon" style="-webkit-mask-image:url('/icons/thermostat.svg')"></div>
+                <select @onchange="e => this.TargetTemp_Changed(unit, e)">
+                    @foreach(var temp in Enumerable.Range(17, 14).Reverse())
+                    {
+                        <option value="@temp" selected="@(temp == unit.TargetTemperature.Current)">@temp°C</option>
+                    }
+                </select>
+            </div>
+            <div>Current: @unit.IndoorTemperature.Current°C</div>
+        </div>
+    }
+</div>
