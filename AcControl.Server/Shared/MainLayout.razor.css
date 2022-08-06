@@ -10,13 +10,19 @@ main {
     flex: 1;
 }
 
+.content {
+    display: flex;
+    flex-direction: column;
+    padding: 1em;
+    gap: 1em;
+}
+
 .sidebar {
     background-image: linear-gradient(180deg, rgb(59 65 76) 0%, #242224 70%);
 }
 
 .top-row {
     justify-content: flex-end;
-    height: 3.5rem;
     display: flex;
     align-items: center;
 }
@@ -55,6 +61,8 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        display: flex;
+        flex-direction: column;
     }
 
     .top-row {

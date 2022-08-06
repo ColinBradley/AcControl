@@ -19,10 +19,6 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
-.content {
-    padding: 0 1em;
-}
-
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }

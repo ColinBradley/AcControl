@@ -1,7 +1,9 @@
 ﻿<AuthorizeView>
     <Authorized>
-        Hello, @context.User.Identity?.Name
-        <a href="MicrosoftIdentity/Account/SignOut">Log out</a>
+        <div class="auth">
+            <span>@context.User.Identity?.Name</span>
+            <a href="MicrosoftIdentity/Account/SignOut">Log out</a>
+        </div>
     </Authorized>
     <NotAuthorized>
         <a href="MicrosoftIdentity/Account/SignIn">Log in</a>

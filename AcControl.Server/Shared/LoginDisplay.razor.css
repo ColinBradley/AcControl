@@ -1,0 +1,9 @@
+﻿.auth {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5em;
+	padding: .5em;
+	flex-grow: 1;
+	align-content: end;
+	justify-content: end;
+}
