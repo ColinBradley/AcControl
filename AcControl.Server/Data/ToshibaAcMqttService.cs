@@ -1,18 +1,17 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Azure.Devices.Client;
 
 namespace AcControl.Server.Data
 {
     public class ToshibaAcMqttService
     {
-        private readonly ToshibaAcHttpService _toshibaAcHttpService;
-        private readonly Lazy<Task<DeviceClient>> _deviceClient;
+        private readonly ToshibaAcHttpService mToshibaAcHttpService;
+        private readonly Lazy<Task<DeviceClient>> mDeviceClient;
 
         public ToshibaAcMqttService(ToshibaAcHttpService toshibaAcHttpService)
         {
-            _toshibaAcHttpService = toshibaAcHttpService;
-            _deviceClient = new (async () =>
+            mToshibaAcHttpService = toshibaAcHttpService;
+            mDeviceClient = new(async () =>
             {
                 var deviceRegistration = await toshibaAcHttpService.RegisterDevice(CancellationToken.None);
 
@@ -29,7 +28,7 @@ namespace AcControl.Server.Data
             var command = new Command()
             {
                 MessageId = Guid.NewGuid().ToString("N"),
-                SourceId = _toshibaAcHttpService.DeviceId,
+                SourceId = mToshibaAcHttpService.DeviceId,
                 TimeStamp = DateTime.UtcNow.TimeOfDay.ToString(),
                 Cmd = "CMD_FCU_TO_AC",
                 Payload = new() { Data = state },
@@ -53,7 +52,7 @@ namespace AcControl.Server.Data
             message.ContentType = "application/json";
             message.ContentEncoding = "utf-8";
 
-            var client = await _deviceClient.Value;
+            var client = await mDeviceClient.Value;
             await client.SendEventAsync(message);
         }
 
