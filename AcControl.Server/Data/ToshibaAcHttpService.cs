@@ -61,7 +61,7 @@ namespace AcControl.Server.Data
             return body?.ResObj?[0]?.ACList ?? Array.Empty<AirConditionerUnitDetails>();
         }
 
-        public async Task<DeviceRegistration> RegisterDevice(CancellationToken cancellationToken)
+        public async Task<DeviceRegistration?> RegisterDevice(CancellationToken cancellationToken)
         {
             var httpClient = mHttpClientFactory.CreateClient();
             var login = await this.LoginToken.Value;

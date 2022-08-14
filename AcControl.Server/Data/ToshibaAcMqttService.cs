@@ -15,7 +15,7 @@ namespace AcControl.Server.Data
             {
                 var deviceRegistration = await toshibaAcHttpService.RegisterDevice(CancellationToken.None);
 
-                var connectionString = $"HostName={deviceRegistration.HostName};DeviceId={toshibaAcHttpService.DeviceId};SharedAccessKey={deviceRegistration.PrimaryKey}";
+                var connectionString = $"HostName={deviceRegistration!.HostName};DeviceId={toshibaAcHttpService.DeviceId};SharedAccessKey={deviceRegistration.PrimaryKey}";
                 var client = DeviceClient.CreateFromConnectionString(connectionString, TransportType.Amqp_WebSocket_Only);
                 await client.SetMethodHandlerAsync("smmobile", this.DeviceClient_OnFCUCommandFromAC, null);
                 await client.OpenAsync();
@@ -40,6 +40,8 @@ namespace AcControl.Server.Data
 
         private Task<MethodResponse> DeviceClient_OnFCUCommandFromAC(MethodRequest methodRequest, object userContext)
         {
+            // Device In: { "sourceId":"e19ddd05-4f4c-4193-9f98-8f921d455f38","messageId":"0000000","targetId":["d33d7e54b66d4d1c8d066060041f1e00"],"cmd":"CMD_SET_SCHEDULE_FROM_AC","payload":{ "programSetting":{ "Sunday":{ "p1":"","p2":"","p3":"","p4":""},"Monday":{ "p1":"","p2":"","p3":"","p4":""},"Tuesday":{ "p1":"","p2":"","p3":"","p4":""},"Wednesday":{ "p1":"","p2":"","p3":"","p4":""},"Thursday":{ "p1":"","p2":"","p3":"","p4":""},"Friday":{ "p1":"","p2":"","p3":"","p4":""},"Saturday":{ "p1":"","p2":"","p3":"","p4":""} },"schedulerStatus":"00","dstStatus":"ON","dst":{ "Time":"1667095200","Status":"OFF"} },"timeStamp":"0000000"}
+            // Device In: { "sourceId":"e19ddd05-4f4c-4193-9f98-8f921d455f38","messageId":"","targetId":["d33d7e54b66d4d1c8d066060041f1e00"],"cmd":"CMD_FCU_FROM_AC","payload":{ "data":"30411941316400101810fe0200001002000000"},"timeStamp":"11:15:58.2284097"}
             Console.WriteLine("Device In: " + methodRequest.DataAsJson);
 
             return Task.FromResult(new MethodResponse(200));

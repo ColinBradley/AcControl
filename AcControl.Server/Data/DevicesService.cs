@@ -56,7 +56,7 @@
 
             foreach (var unit in units)
             {
-                mUnitsById.AddOrUpdate(
+                _ = mUnitsById.AddOrUpdate(
                     unit.Id,
                     _ => 
                     {

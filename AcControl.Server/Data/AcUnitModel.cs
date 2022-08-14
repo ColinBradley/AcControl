@@ -103,7 +103,6 @@
             return this.StateValue[..2] + modeCode + this.StateValue[4..];
         }
 
-
         private void Property_Changed() => this.Changed?.Invoke();
     }
 
