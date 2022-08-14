@@ -8,6 +8,10 @@ namespace AcControl.Server.Data
         private readonly ToshibaAcHttpService mToshibaAcHttpService;
         private readonly Lazy<Task<DeviceClient>> mDeviceClient;
 
+        public delegate void DeviceUpdateHandler(string deviceId, string state);
+
+        public event DeviceUpdateHandler? DeviceUpdated;
+
         public ToshibaAcMqttService(ToshibaAcHttpService toshibaAcHttpService)
         {
             mToshibaAcHttpService = toshibaAcHttpService;
@@ -44,6 +48,20 @@ namespace AcControl.Server.Data
             // Device In: { "sourceId":"e19ddd05-4f4c-4193-9f98-8f921d455f38","messageId":"","targetId":["d33d7e54b66d4d1c8d066060041f1e00"],"cmd":"CMD_FCU_FROM_AC","payload":{ "data":"30411941316400101810fe0200001002000000"},"timeStamp":"11:15:58.2284097"}
             Console.WriteLine("Device In: " + methodRequest.DataAsJson);
 
+            var command = JsonSerializer.Deserialize<Command>(methodRequest.DataAsJson, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+            switch (command?.Cmd)
+            {
+                case "CMD_FCU_FROM_AC":
+                    if (command.Payload?.Data.StartsWith("ff") ?? false)
+                    {
+                        // Odd states are sometimes sent with most values set to ff... ignore them?
+                        break;
+                    }
+
+                    this.DeviceUpdated?.Invoke(command.SourceId, command.Payload!.Data);
+                    break;
+            }
+
             return Task.FromResult(new MethodResponse(200));
         }
 
@@ -60,17 +78,17 @@ namespace AcControl.Server.Data
 
         private class Command
         {
-            public string TimeStamp { get; set; } = "";
+            public string SourceId { get; set; } = "";
 
             public string MessageId { get; set; } = "";
-
-            public string SourceId { get; set; } = "";
 
             public string[] TargetId { get; set; } = Array.Empty<string>();
 
             public string Cmd { get; set; } = "";
 
             public Payload? Payload { get; set; }
+
+            public string TimeStamp { get; set; } = "";
         }
 
         private class Payload

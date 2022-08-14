@@ -55,6 +55,10 @@ h1 {
 				background-color: #5abd5a;
 			}
 
+			.devices > .device button.power.waiting {
+				animation: opacity-pulse alternate .8s linear infinite;
+			}
+
 		.devices > .device .icon {
 			width: 2em;
 			height: 2em;
@@ -70,3 +74,12 @@ h1 {
 			border: none;
 			font-size: 1em;
 		}
+
+@keyframes opacity-pulse {
+	0% {
+		opacity: .6;
+	}
+	100% {
+		opacity: .2;
+	}
+}

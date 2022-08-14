@@ -2,12 +2,11 @@
 {
     using System.Collections;
     using System.Collections.Concurrent;
-    using System.Timers;
-
+    
     public class DevicesService : IDisposable, IEnumerable<AcUnitModel>
     {
         private readonly ToshibaAcHttpService mAcHttpService;
-        private readonly Timer mTimer;
+        private readonly ToshibaAcMqttService mMqttService;
         private readonly ConcurrentDictionary<string, AcUnitModel> mUnitsById = new();
 
         private int mSubscriptionCount = 0;
@@ -17,13 +16,22 @@
         public delegate void ChangedEventHandler();
         public event ChangedEventHandler? Changed;
 
-        public DevicesService(ToshibaAcHttpService httpService)
+        public DevicesService(ToshibaAcHttpService httpService, ToshibaAcMqttService mqttService)
         {
             mAcHttpService = httpService;
+            mMqttService = mqttService;
 
-            mTimer = new Timer();
-            mTimer.Elapsed += this.Timer_Tick;
-            mTimer.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
+            mqttService.DeviceUpdated += this.MqttService_DeviceUpdated;
+        }
+
+        private void MqttService_DeviceUpdated(string deviceId, string unitState)
+        {
+            if (!mUnitsById.TryGetValue(deviceId, out var unit))
+            {
+                return;
+            }
+
+            _ = unit.Update(unitState);
         }
 
         public int? OutsideTemp => mUnitsById.Values.FirstOrDefault()?.OutdoorTemperature.Current;
@@ -35,8 +43,6 @@
                 return;
             }
 
-            mTimer.Start();
-
             await this.UpdateUnits();
         }
 
@@ -46,18 +52,16 @@
             {
                 return;
             }
-
-            mTimer.Stop();
         }
 
-        private async Task UpdateUnits()
+        public async Task UpdateUnits()
         {
             var units = await mAcHttpService.GetAirConditionerUnits(CancellationToken.None);
 
             foreach (var unit in units)
             {
                 _ = mUnitsById.AddOrUpdate(
-                    unit.Id,
+                    unit.DeviceUniqueId,
                     _ => 
                     {
                         var model = new AcUnitModel(unit);
@@ -73,11 +77,6 @@
             this.Changed?.Invoke();
         }
 
-        private async void Timer_Tick(object? sender, ElapsedEventArgs e)
-        {
-            await this.UpdateUnits();
-        }
-
         protected virtual void Dispose(bool disposing)
         {
             if (mIsDisposed)
@@ -89,7 +88,7 @@
 
             if (disposing)
             {
-                mTimer.Dispose();
+                mMqttService.DeviceUpdated -= this.MqttService_DeviceUpdated;
             }
         }
 
