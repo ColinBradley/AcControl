@@ -21,7 +21,7 @@
 </div>
 
 <div class="devices">
-    @foreach (var unit in this.AcDevicesService)
+    @foreach (var unit in this.AcDevicesService.OrderBy(unit => unit.Name))
     {
         <div class="device">
             <div class="horizontal">
@@ -72,9 +72,6 @@
         await this.AcDevicesService.Subscribe();
 
         mIsInitialized = true;
-
-        // Probably don't need to call this, but I don't trust the push updates
-        await this.AcDevicesService.UpdateUnits();
     }
 
     private async Task PowerButton_Clicked(AcUnitModel unit)
