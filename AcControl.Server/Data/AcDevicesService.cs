@@ -1,10 +1,11 @@
 ﻿namespace AcControl.Server.Data
 {
+    using AcControl.Server.Data.Models;
     using AcControl.Server.Utils;
     using System.Collections;
     using System.Collections.Concurrent;
 
-    public class DevicesService : IDisposable, IEnumerable<AcUnitModel>
+    public class AcDevicesService : IDisposable, IEnumerable<AcUnitModel>
     {
         private readonly ToshibaAcHttpService mAcHttpService;
         private readonly ToshibaAcMqttService mMqttService;
@@ -18,7 +19,7 @@
         public delegate void ChangedEventHandler();
         public event ChangedEventHandler? Changed;
 
-        public DevicesService(ToshibaAcHttpService httpService, ToshibaAcMqttService mqttService)
+        public AcDevicesService(ToshibaAcHttpService httpService, ToshibaAcMqttService mqttService)
         {
             mAcHttpService = httpService;
             mMqttService = mqttService;

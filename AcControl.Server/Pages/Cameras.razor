@@ -1,0 +1,80 @@
+@page "/cameras";
+
+@using AcControl.Server.Data;
+@using KoenZomers.Ring.Api.Entities;
+@implements IDisposable;
+
+@inject RingDevicesService RingService
+
+<PageTitle>Oal Home Cameras</PageTitle>
+
+<h1>Cameras</h1>
+
+@if (this.RingService.Session is null)
+{
+	<label>
+		<span>2FA Code:</span>
+		<input @bind-value=@this.RingService.AuthCode placeholder="2FA Code">
+	</label>
+	<button @onclick=@this.AuthButton_Clicked>Auth</button>
+	return;
+}
+
+<div class="devices">
+	@foreach (var doorBell in this.RingService.Devices)
+	{
+		<div class="device">
+			<h2>@doorBell.Description</h2>
+			@if (doorBell.LatestSnapshot != null && doorBell.LatestSnapshotTime != null)
+			{
+				<img src="/api/ring/snapshots/@doorBell.Id?timestamp=@doorBell.LatestSnapshotTime.Value.ToString("u")" class="preview">
+				<div>@(Math.Floor((DateTime.Now - doorBell.LatestSnapshotTime).Value.TotalSeconds))s ago</div>
+			}
+			else 
+			{
+				<div>Awaiting first image...</div>
+			}
+		</div>
+	}
+</div>
+
+@code {
+	private Timer? mUpdateTimer;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await this.RingService.Subscribe();
+
+		mUpdateTimer = new Timer(
+			_ => this.InvokeAsync(() => this.StateHasChanged()),
+			null,
+			TimeSpan.FromSeconds(.5),
+			TimeSpan.FromSeconds(.5)
+		);
+
+		await base.OnInitializedAsync();
+	}
+
+	private async Task AuthButton_Clicked()
+	{
+		await this.RingService.TryAuth();
+
+		await this.RingService.UpdateDevices();
+	}
+
+	private async void RingService_Changed()
+	{
+		await this.InvokeAsync(() => { this.StateHasChanged(); });
+	}
+
+	public async void Dispose()
+	{
+		if (mUpdateTimer is not null)
+		{
+			await mUpdateTimer.DisposeAsync();
+		}
+
+		this.RingService.Changed -= this.RingService_Changed;
+		this.RingService.Unsubscribe();
+	}
+}

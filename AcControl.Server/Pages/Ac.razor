@@ -1,9 +1,10 @@
 ﻿@page "/ac"
 
 @using AcControl.Server.Data
+@using AcControl.Server.Data.Models
 @implements IDisposable
 @inject ToshibaAcMqttService AcMqttService
-@inject DevicesService AcDevicesService
+@inject AcDevicesService AcDevicesService
 
 <PageTitle>Oal Home AC</PageTitle>
 

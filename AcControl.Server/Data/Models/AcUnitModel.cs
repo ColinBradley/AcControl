@@ -1,5 +1,7 @@
-﻿namespace AcControl.Server.Data
+﻿namespace AcControl.Server.Data.Models
 {
+    using AcControl.Server.Data;
+
     public class AcUnitModel
     {
         public delegate void ChangedEventHandler();
@@ -13,7 +15,7 @@
             this.StateValue = initialDetails.ACStateData;
 
             var state = UnitState.Parse(initialDetails.ACStateData);
-            
+
             this.PowerStatus = new(state.PowerStatus);
             this.Mode = new(state.Mode);
             this.TargetTemperature = new(state.TargetTemperature);
@@ -67,16 +69,18 @@
 
         public string TogglePower()
         {
-            switch(this.PowerStatus.Target)
+            switch (this.PowerStatus.Target)
             {
-                case PowerState.On: {
-                    this.PowerStatus.Target = PowerState.Off;
-                    return "31" + this.StateValue[2..];
-                }
-                default: {
-                    this.PowerStatus.Target = PowerState.On;
-                    return "30" + this.StateValue[2..];
-                }
+                case PowerState.On:
+                    {
+                        this.PowerStatus.Target = PowerState.Off;
+                        return "31" + this.StateValue[2..];
+                    }
+                default:
+                    {
+                        this.PowerStatus.Target = PowerState.On;
+                        return "30" + this.StateValue[2..];
+                    }
             }
         }
 

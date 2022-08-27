@@ -34,7 +34,8 @@ builder.Services
     .AddMicrosoftIdentityConsentHandler();
 
 builder.Services
-    .AddSingleton<DevicesService>()
+    .AddSingleton<AcDevicesService>()
+    .AddSingleton<RingDevicesService>()
     .AddSingleton<ToshibaAcHttpService>()
     .AddSingleton<ToshibaAcMqttService>();
 
