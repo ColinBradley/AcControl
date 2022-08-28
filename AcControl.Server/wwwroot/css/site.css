@@ -9,9 +9,13 @@ h1:focus {
     outline: none;
 }
 
-a, .btn-link {
-    color: #0071c1;
+a {
+    color: #2a89cd;
 }
+
+    a:hover {
+        color: #5fbcff;
+    }
 
 .btn-primary {
     color: #fff;

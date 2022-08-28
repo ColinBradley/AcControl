@@ -1,6 +1,7 @@
 @page "/cameras";
 
 @using AcControl.Server.Data;
+@using Humanizer
 @using KoenZomers.Ring.Api.Entities;
 @implements IDisposable;
 
@@ -20,6 +21,10 @@
 	return;
 }
 
+@{
+	var today = DateTime.Today;
+}
+
 <div class="devices">
 	@foreach (var doorBell in this.RingService.Devices)
 	{
@@ -28,9 +33,25 @@
 			@if (doorBell.LatestSnapshot != null && doorBell.LatestSnapshotTime != null)
 			{
 				<img src="/api/ring/snapshots/@doorBell.Id?timestamp=@doorBell.LatestSnapshotTime.Value.ToString("u")" class="preview">
-				<div>@(Math.Floor((DateTime.Now - doorBell.LatestSnapshotTime).Value.TotalSeconds))s ago</div>
+				<span class="updated-time">@doorBell.LatestSnapshotTime.Value.Humanize()</span>
+
+				<div class="details">
+					@{
+						var latestEvent = doorBell.GetEventsInOrder().FirstOrDefault();
+						if (latestEvent is not null)
+						{
+							<a href="/cameras/@doorBell.Id/events/@latestEvent.Id">
+								<span class="icon" style="-webkit-mask-image:url('@(latestEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
+
+							  @latestEvent.CreatedAtDateTime.Humanize()</a>
+						}
+
+						var todaysEventCount = doorBell.GetEventsInOrder().Where(e => e.CreatedAtDateTime != null && e.CreatedAtDateTime.Value.Date == today).Count();
+						<a href="/cameras/@doorBell.Id/events">@todaysEventCount event@(todaysEventCount == 1 ? "" : "s") today</a>
+					}
+				</div>
 			}
-			else 
+			else
 			{
 				<div>Awaiting first image...</div>
 			}
@@ -44,6 +65,7 @@
 	protected override async Task OnInitializedAsync()
 	{
 		await this.RingService.Subscribe();
+		this.RingService.AnythingChanged += this.RingService_Changed;
 
 		mUpdateTimer = new Timer(
 			_ => this.InvokeAsync(() => this.StateHasChanged()),
@@ -74,7 +96,7 @@
 			await mUpdateTimer.DisposeAsync();
 		}
 
-		this.RingService.Changed -= this.RingService_Changed;
+		this.RingService.AnythingChanged -= this.RingService_Changed;
 		this.RingService.Unsubscribe();
 	}
 }

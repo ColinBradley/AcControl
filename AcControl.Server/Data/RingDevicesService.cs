@@ -3,16 +3,21 @@
 using AcControl.Server.Data.Models;
 using AcControl.Server.Utils;
 using KoenZomers.Ring.Api.Entities;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using Microsoft.Identity.Client;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Session = KoenZomers.Ring.Api.Session;
 using SessionInformation = KoenZomers.Ring.Api.Entities.Session;
 
 public class RingDevicesService : IDisposable
 {
     private readonly IConfiguration mConfig;
-
+    private readonly IHttpClientFactory mHttpClientFactory;
     private readonly Debouncer mUpdateDebouncer;
 
     private int mSubscriptionCount = 0;
@@ -20,11 +25,17 @@ public class RingDevicesService : IDisposable
     private bool mIsDisposed;
 
     public delegate void ChangedEventHandler();
-    public event ChangedEventHandler? Changed;
 
-    public RingDevicesService(IConfiguration configuration)
+    /// <summary>
+    /// Just a general anything changed at all event to know when to update the UI.
+    /// Ideally, this'd just be scoped to collection changes, but ANGTFT.
+    /// </summary>
+    public event ChangedEventHandler? AnythingChanged;
+
+    public RingDevicesService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         mConfig = configuration;
+        mHttpClientFactory = httpClientFactory;
 
         var session = new Session(
                 mConfig.GetValue<string>("Ring:Username"),
@@ -105,6 +116,9 @@ public class RingDevicesService : IDisposable
             if (matchingDevice is null)
             {
                 matchingDevice = new RingDeviceModel(doorBot.Id, doorBot.Description);
+                
+                // Note we don't have to worry about cleaning this up as we live longer
+                matchingDevice.PropertyChanged += this.RingDeviceModel_Changed;
             }
             else
             {
@@ -130,14 +144,43 @@ public class RingDevicesService : IDisposable
                 {
                     // Meh.. probably a 404 as there's no image atm
                 }
+
+                var lastEventTime = matchingDevice.Events.MaxBy(e => e.CreatedAtDateTime)?.CreatedAtDateTime;
+                var historyEvents = lastEventTime is not null
+                    ? await this.Session.GetDoorbotsHistory(startDate: lastEventTime.Value.AddSeconds(1), endDate: null, doorbotId: doorBot.Id)
+                    : await this.Session.GetDoorbotsHistory(doorbotId: doorBot.Id);
+                
+                foreach (var historyEvent in historyEvents)
+                {
+                    matchingDevice.Events.Add(historyEvent);
+                }
             }
         }
 
         if (!this.Devices.SequenceEqual(newDeviceList))
         {
             this.Devices = newDeviceList.ToArray();
-            this.Changed?.Invoke();
+            this.AnythingChanged?.Invoke();
         }
+    }
+
+    /// <summary>
+    /// Gets a very short lived link to a video of a ding event.
+    /// </summary>
+    public async Task<string?> GetEventVideoUrl(string dingId)
+    {
+        using var httpClient = mHttpClientFactory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.Session.RingApiBaseUrl, "dings/" + dingId + "/share/download?disable_redirect=true"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.Session.AuthenticationToken);
+        var httpResult = await httpClient.SendAsync(request);
+        var result = await httpResult.Content.ReadFromJsonAsync<DownloadRecording>();
+
+        return result?.Url;
+    }
+
+    private void RingDeviceModel_Changed(object? sender, PropertyChangedEventArgs e)
+    {
+        this.AnythingChanged?.Invoke();
     }
 
     protected virtual void Dispose(bool disposing)

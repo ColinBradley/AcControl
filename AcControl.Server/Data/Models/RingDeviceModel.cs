@@ -1,5 +1,7 @@
 ﻿namespace AcControl.Server.Data.Models;
 
+using KoenZomers.Ring.Api.Entities;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 
 public class RingDeviceModel : INotifyPropertyChanged
@@ -65,5 +67,14 @@ public class RingDeviceModel : INotifyPropertyChanged
 
             this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(this.LatestSnapshotTime)));
         }
+    }
+
+    public ConcurrentBag<DoorbotHistoryEvent> Events { get; } = new ConcurrentBag<DoorbotHistoryEvent>();
+
+    public IEnumerable<DoorbotHistoryEvent> GetEventsInOrder()
+    {
+        return this.Events
+            .Where(e => e.Kind != "on_demand") // These are just responses to getting share things?
+            .OrderByDescending(e => e.CreatedAtDateTime);
     }
 }

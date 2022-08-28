@@ -1,0 +1,86 @@
+@page "/cameras/{DeviceId}/events";
+
+@using AcControl.Server.Data;
+@using AcControl.Server.Data.Models
+@using Humanizer
+@using KoenZomers.Ring.Api.Entities;
+@implements IDisposable;
+
+@inject RingDevicesService RingService
+
+@if (this.Device is null)
+{
+
+	<PageTitle>Oal Home Camera Events</PageTitle>
+
+	<h1>Camera Events</h1>
+
+	<div>Loading...</div>
+
+	return;
+}
+
+<PageTitle>Oal Home Camera Events - @this.Device.Description</PageTitle>
+
+<h1><a href="/cameras" class="icon" style="-webkit-mask-image:url('/icons/back.svg')"></a>Camera Events - @this.Device.Description</h1>
+
+<div class="events-container">
+	@{
+		var today = DateTime.Now.Date;
+	}
+	@foreach (var eventsByDate in this.Device.GetEventsInOrder().GroupBy(e => e.CreatedAtDateTime!.Value.Date))
+	{
+		<div class="event-date">
+			<h2>@(eventsByDate.Key.Date == today ? "Today" : eventsByDate.Key.ToString("dd MMMM"))</h2>
+			<div class="events">
+				@foreach(var deviceEvent in eventsByDate) {
+					<div class="event">
+						<a href="/cameras/@this.DeviceId/events/@deviceEvent.Id">
+							<span class="icon" style="-webkit-mask-image:url('@(deviceEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
+
+							@deviceEvent.CreatedAtDateTime!.Value.ToShortTimeString()
+						</a>
+					</div>
+				}
+			</div>
+		</div>
+	}
+</div>
+
+@code {
+	private Timer? mUpdateTimer;
+
+	private RingDeviceModel? Device { get; set; }
+
+	[Parameter]
+	public string? DeviceId { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!int.TryParse(this.DeviceId, out var deviceIdInt)) {
+			return;
+		}
+
+		this.Device = this.RingService.Devices.FirstOrDefault(d => d.Id == deviceIdInt);
+		await this.RingService.Subscribe();
+
+		mUpdateTimer = new Timer(
+			_ => this.InvokeAsync(() => this.StateHasChanged()),
+			null,
+			TimeSpan.FromSeconds(10),
+			TimeSpan.FromSeconds(10)
+		);
+
+		await base.OnInitializedAsync();
+	}
+
+	public async void Dispose()
+	{
+		if (mUpdateTimer is not null)
+		{
+			await mUpdateTimer.DisposeAsync();
+		}
+
+		this.RingService.Unsubscribe();
+	}
+}

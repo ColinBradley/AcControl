@@ -6,14 +6,15 @@
 }
 
 	.devices > .device {
-		display: flex;
-		flex-direction: column;
+		display: grid;
 		align-items: center;
 		gap: 1em;
 		padding: 1em;
 		background-color: #333;
 		border-radius: .3em;
 		filter: drop-shadow(2px 4px 6px #000);
+		grid-template-columns: auto;
+		grid-auto-flow: row;
 	}
 
 		.devices > .device h2 {
@@ -22,11 +23,53 @@
 		}
 
 		.devices > .device img.preview {
+			grid-row: 2;
+			grid-column: 1;
 			max-width: 60vw;
 			max-height: 50vh;
 			transition: transform .1s;
+			object-fit: cover;
+			justify-self: stretch;
+
 		}
 
 			.devices > .device img.preview:hover {
 				transform: scale(1.8);
+				z-index: 10;
+			}
+
+		.devices > .device .updated-time {
+			grid-column: 1;
+			grid-row: 2;
+			align-self: end;
+			justify-self: end;
+			filter: drop-shadow(1px 1px 2px black);
+			margin: 0 .4em;
+			font-size: .8em;
+			opacity: .7;
+		}
+
+		.devices > .device .icon {
+			width: 2em;
+			height: 2em;
+			-webkit-mask-size: contain;
+			mask-size: contain;
+			background-color: #ccc;
+			display: inline-block;
+		}
+
+		.devices > .device .details {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 1em;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+			.devices > .device .details a {
+				font-size: .9em;
+				color: #ccc;
+				display: flex;
+				align-items: center;
+				gap: .5em;
 			}

@@ -1,0 +1,84 @@
+@page "/cameras/{DeviceId}/events/{EventId}";
+
+@using AcControl.Server.Data;
+@using AcControl.Server.Data.Models
+@using Humanizer
+@using KoenZomers.Ring.Api.Entities;
+@implements IDisposable;
+
+@inject RingDevicesService RingService
+
+@if (!this.IsInitialized)
+{
+	<PageTitle>Oal Home Camera Event</PageTitle>
+
+	<h1>Camera Event</h1>
+
+	<div>Loading...</div>
+
+	return;
+}
+
+@if (this.Device is null || this.DeviceEvent is null || this.VideoUrl is null) {
+	<PageTitle>Oal Home Camera Event</PageTitle>
+
+	<h1>Event - Unknown</h1>
+
+	<div>Unable to find event</div>
+
+	return;
+}
+
+<PageTitle>Oal Home Camera Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime!.Value.ToString()</PageTitle>
+
+<h1>
+	<a href="/cameras" class="icon" style="-webkit-mask-image:url('/icons/back.svg')"></a>
+	Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime!.Value.ToString()
+</h1>
+
+<div class="event-container">
+	<div class="video-container">
+		<video controls autoplay>
+			<source src="@this.VideoUrl" type="video/mp4" />
+		</video>
+	</div>
+</div>
+
+@code {
+	private bool IsInitialized { get; set; } = false;
+
+	private RingDeviceModel? Device { get; set; }
+
+	private DoorbotHistoryEvent? DeviceEvent { get; set; }
+
+	private string? VideoUrl { get; set; }
+
+	[Parameter]
+	public string? DeviceId { get; set; }
+
+	[Parameter]
+	public string? EventId { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!int.TryParse(this.DeviceId, out var deviceIdInt)) {
+			return;
+		}
+
+		await this.RingService.Subscribe();
+
+		this.Device = this.RingService.Devices.FirstOrDefault(d => d.Id == deviceIdInt);
+		this.DeviceEvent = this.Device?.Events.FirstOrDefault(e => e.Id == this.EventId);
+
+		this.VideoUrl = await this.RingService.GetEventVideoUrl(this.EventId!);
+
+		await base.OnInitializedAsync();
+
+		this.IsInitialized = true;
+	}
+
+	public void Dispose()
+	{
+		this.RingService.Unsubscribe();
+	}
+}
