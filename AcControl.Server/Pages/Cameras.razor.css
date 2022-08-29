@@ -1,4 +1,8 @@
-﻿.devices {
+﻿h1 {
+	margin: 0;
+}
+
+.devices {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: center;

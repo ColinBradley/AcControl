@@ -107,6 +107,26 @@
             return this.StateValue[..2] + modeCode + this.StateValue[4..];
         }
 
+        public string SetFan(FanMode mode)
+        {
+            var modeCode = mode switch
+            {
+                Models.FanMode.Auto => "41",
+                Models.FanMode.Quiet => "31",
+                Models.FanMode.Low => "32",
+                Models.FanMode.MediumLow => "33",
+                Models.FanMode.Medium => "34",
+                Models.FanMode.MediumHigh => "35",
+                Models.FanMode.High => "36",
+                Models.FanMode.None => "00",
+                _ => "41",
+            };
+
+            this.FanMode.Target = mode;
+
+            return this.StateValue[..6] + modeCode + this.StateValue[8..];
+        }
+
         private void Property_Changed() => this.Changed?.Invoke();
     }
 

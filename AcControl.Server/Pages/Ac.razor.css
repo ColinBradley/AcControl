@@ -1,5 +1,4 @@
 h1 {
-	font-size: 2em;
 	margin: 0;
 }
 
@@ -67,12 +66,17 @@ h1 {
 			background-color: #ccc;
 		}
 
+		.devices > .device .icon.waiting {
+			animation: opacity-pulse alternate .8s linear infinite;
+		}
+
 		.devices > .device select {
 			padding: .3em 1em;
 			background-color: #444;
 			color: #ccc;
 			border: none;
 			font-size: 1em;
+			min-width: 6em;
 		}
 
 @keyframes opacity-pulse {

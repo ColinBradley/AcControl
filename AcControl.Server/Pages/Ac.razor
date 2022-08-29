@@ -10,109 +10,141 @@
 
 @if (!mIsInitialized)
 {
-    <p>
-        <em>Loading...</em>
-    </p>
-    return;
+	<div class="ac-header">
+		<h1>AC Units</h1>
+	</div>
+	<p>
+		<em>Loading...</em>
+	</p>
+	return;
 }
 
 <div class="ac-header">
-    <h1>AC Units</h1>
-    <div>Outside: @(this.AcDevicesService.OutsideTemp?.ToString() ?? "?")°C</div>
+	<h1>AC Units</h1>
+	<div>Outside: @(this.AcDevicesService.OutsideTemp?.ToString() ?? "?")°C</div>
 </div>
 
 <div class="devices">
-    @foreach (var unit in this.AcDevicesService.OrderBy(unit => unit.Name))
-    {
-        <div class="device">
-            <div class="horizontal">
-                <h2>@unit.Name</h2>
-                <button class="power @(unit.PowerStatus.Current == PowerState.On ? "on" : "off") @(unit.PowerStatus.Current != unit.PowerStatus.Target ? "waiting" : "")" @onclick="() => this.PowerButton_Clicked(unit)">
-                </button>
-            </div>
-            <div class="horizontal" style="gap:.5em;">
-                <div class="icon" style="-webkit-mask-image:url('/icons/fan.svg')"></div>
-                <select @onchange="e => this.Mode_Changed(unit, e)">
-                    @foreach (var (modeString, modeEnum) in MODE_OPTIONS)
-                    {
-                        <option value="@modeString" selected="@(modeEnum == unit.Mode.Current)">@modeString</option>
-                    }
-                </select>
-            </div>
-            <div class="horizontal" style="gap:.5em;">
-                <div class="icon" style="-webkit-mask-image:url('/icons/thermostat.svg')"></div>
-                <select @onchange="e => this.TargetTemp_Changed(unit, e)">
-                    @foreach (var temp in Enumerable.Range(17, 14).Reverse())
-                    {
-                        <option value="@temp" selected="@(temp == unit.TargetTemperature.Current)">@temp°C</option>
-                    }
-                </select>
-            </div>
-            <div>Current: @unit.IndoorTemperature.Current°C</div>
-        </div>
-    }
+	@foreach (var unit in this.AcDevicesService.OrderBy(unit => unit.Name))
+	{
+		<div class="device">
+			<div class="horizontal">
+				<h2>@unit.Name</h2>
+				<button class="power @(unit.PowerStatus.Current == PowerState.On ? "on" : "off") @(unit.PowerStatus.Current != unit.PowerStatus.Target ? "waiting" : "")" @onclick="() => this.PowerButton_Clicked(unit)">
+				</button>
+			</div>
+			<div class="horizontal" style="gap:.5em;">
+				<div class="icon @(unit.Mode.Current != unit.Mode.Target ? "waiting" : "")" style="-webkit-mask-image:url('/icons/heat-cool-mode.svg')"></div>
+				<select @onchange="e => this.Mode_Changed(unit, e)">
+					@foreach (var (modeString, modeEnum) in MODE_OPTIONS)
+					{
+						<option value="@modeString" selected="@(modeEnum == unit.Mode.Current)">@modeString</option>
+					}
+				</select>
+			</div>
+			<div class="horizontal" style="gap:.5em;">
+				<div class="icon @(unit.TargetTemperature.Current != unit.TargetTemperature.Target ? "waiting" : "")" style="-webkit-mask-image:url('/icons/thermostat.svg')"></div>
+				<select @onchange="e => this.TargetTemp_Changed(unit, e)">
+					@foreach (var temp in Enumerable.Range(17, 14).Reverse())
+					{
+						<option value="@temp" selected="@(temp == unit.TargetTemperature.Current)">@temp°C</option>
+					}
+				</select>
+			</div>
+			<div class="horizontal" style="gap:.5em;">
+				<div class="icon @(unit.FanMode.Current != unit.FanMode.Target ? "waiting" : "")" style="-webkit-mask-image:url('/icons/fan.svg')"></div>
+				<select @onchange="e => this.Fan_Changed(unit, e)">
+					@foreach (var (fanString, fanEnum) in FAN_OPTIONS)
+					{
+						<option value="@fanString" selected="@(fanEnum == unit.FanMode.Current)">@fanString</option>
+					}
+				</select>
+			</div>
+			<div>Current: @unit.IndoorTemperature.Current°C</div>
+		</div>
+	}
 </div>
 
 @code {
 
-    private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
-    {
-        ("Auto", AirConditionerMode.Auto),
-        ("Cool", AirConditionerMode.Cool),
-        ("Dry", AirConditionerMode.Dry),
-        ("Fan", AirConditionerMode.Fan),
-        ("Heat", AirConditionerMode.Heat),
-    };
+	private static readonly (string, AirConditionerMode)[] MODE_OPTIONS = new[]
+	{
+		("Auto", AirConditionerMode.Auto),
+		("Cool", AirConditionerMode.Cool),
+		("Dry", AirConditionerMode.Dry),
+		("Fan", AirConditionerMode.Fan),
+		("Heat", AirConditionerMode.Heat),
+	};
 
-    private bool mIsInitialized = false;
+	private static readonly (string Label, FanMode Mode)[] FAN_OPTIONS = new[]
+	{
+		("Auto", FanMode.Auto),
+		("Quiet", FanMode.Quiet),
+		("1", FanMode.Low),
+		("2", FanMode.MediumLow),
+		("3", FanMode.Medium),
+		("4", FanMode.MediumHigh),
+		("5", FanMode.High),
+	};
 
-    protected override async Task OnInitializedAsync()
-    {
-        this.AcDevicesService.Changed += this.AcDevicesService_Changed;
+	private bool mIsInitialized = false;
 
-        await this.AcDevicesService.Subscribe();
+	protected override async Task OnInitializedAsync()
+	{
+		this.AcDevicesService.Changed += this.AcDevicesService_Changed;
 
-        mIsInitialized = true;
-    }
+		await this.AcDevicesService.Subscribe();
 
-    private async Task PowerButton_Clicked(AcUnitModel unit)
-    {
-        var newState = unit.TogglePower();
+		mIsInitialized = true;
+	}
 
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
+	private async Task PowerButton_Clicked(AcUnitModel unit)
+	{
+		var newState = unit.TogglePower();
 
-    private async void TargetTemp_Changed(AcUnitModel unit, ChangeEventArgs e)
-    {
-        var newState = unit.SetTargetTemp(Int32.Parse((string)e.Value!));
+		await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+	}
 
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
+	private async void TargetTemp_Changed(AcUnitModel unit, ChangeEventArgs e)
+	{
+		var newState = unit.SetTargetTemp(Int32.Parse((string)e.Value!));
 
-    private async void Mode_Changed(AcUnitModel unit, ChangeEventArgs e)
-    {
-        var newMode = (string)e.Value! switch
-        {
-            "Cool" => AirConditionerMode.Cool,
-            "Dry" => AirConditionerMode.Dry,
-            "Fan" => AirConditionerMode.Fan,
-            "Heat" => AirConditionerMode.Heat,
-            _ => AirConditionerMode.Auto,
-            };
+		await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+	}
 
-        var newState = unit.SetMode(newMode);
+	private async void Mode_Changed(AcUnitModel unit, ChangeEventArgs e)
+	{
+		var newMode = (string)e.Value! switch
+		{
+			"Cool" => AirConditionerMode.Cool,
+			"Dry" => AirConditionerMode.Dry,
+			"Fan" => AirConditionerMode.Fan,
+			"Heat" => AirConditionerMode.Heat,
+			_ => AirConditionerMode.Auto,
+		};
 
-        await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
-    }
+		var newState = unit.SetMode(newMode);
 
-    private async void AcDevicesService_Changed()
-    {
-        await this.InvokeAsync(() => { this.StateHasChanged(); });
-    }
+		await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+	}
 
-    public void Dispose()
-    {
-        this.AcDevicesService.Changed -= this.AcDevicesService_Changed;
-        this.AcDevicesService.Unsubscribe();
-    }
+	private async void Fan_Changed(AcUnitModel unit, ChangeEventArgs e)
+	{
+		var newMode = FAN_OPTIONS.FirstOrDefault(mode => mode.Label == (string)e.Value!).Mode;
+
+		var newState = unit.SetFan(newMode);
+
+		await this.AcMqttService.SetAcUnitState(newState, unit.DeviceUniqueId);
+	}
+
+	private async void AcDevicesService_Changed()
+	{
+		await this.InvokeAsync(() => { this.StateHasChanged(); });
+	}
+
+	public void Dispose()
+	{
+		this.AcDevicesService.Changed -= this.AcDevicesService_Changed;
+		this.AcDevicesService.Unsubscribe();
+	}
 }
