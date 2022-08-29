@@ -33,7 +33,8 @@
 		<div class="event-date">
 			<h2>@(eventsByDate.Key.Date == today ? "Today" : eventsByDate.Key.ToString("dd MMMM"))</h2>
 			<div class="events">
-				@foreach(var deviceEvent in eventsByDate) {
+				@foreach (var deviceEvent in eventsByDate)
+				{
 					<div class="event">
 						<a href="/cameras/@this.DeviceId/events/@deviceEvent.Id">
 							<span class="icon" style="-webkit-mask-image:url('@(deviceEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
@@ -57,7 +58,8 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		if (!int.TryParse(this.DeviceId, out var deviceIdInt)) {
+		if (!int.TryParse(this.DeviceId, out var deviceIdInt))
+		{
 			return;
 		}
 

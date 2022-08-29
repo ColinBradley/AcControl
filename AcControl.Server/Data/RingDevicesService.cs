@@ -119,6 +119,8 @@ public class RingDevicesService : IDisposable
                 
                 // Note we don't have to worry about cleaning this up as we live longer
                 matchingDevice.PropertyChanged += this.RingDeviceModel_Changed;
+                
+                await this.Session.UpdateSnapshot(doorBot.Id);
             }
             else
             {
@@ -144,16 +146,16 @@ public class RingDevicesService : IDisposable
                 {
                     // Meh.. probably a 404 as there's no image atm
                 }
+            }
 
-                var lastEventTime = matchingDevice.Events.MaxBy(e => e.CreatedAtDateTime)?.CreatedAtDateTime;
-                var historyEvents = lastEventTime is not null
-                    ? await this.Session.GetDoorbotsHistory(startDate: lastEventTime.Value.AddSeconds(1), endDate: null, doorbotId: doorBot.Id)
-                    : await this.Session.GetDoorbotsHistory(doorbotId: doorBot.Id);
+            var lastEventTime = matchingDevice.Events.MaxBy(e => e.CreatedAtDateTime)?.CreatedAtDateTime;
+            var historyEvents = lastEventTime is not null
+                ? await this.Session.GetDoorbotsHistory(startDate: lastEventTime.Value.AddSeconds(1), endDate: null, doorbotId: doorBot.Id)
+                : await this.Session.GetDoorbotsHistory(doorbotId: doorBot.Id);
                 
-                foreach (var historyEvent in historyEvents)
-                {
-                    matchingDevice.Events.Add(historyEvent);
-                }
+            foreach (var historyEvent in historyEvents)
+            {
+                matchingDevice.Events.Add(historyEvent);
             }
         }
 
