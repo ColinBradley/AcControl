@@ -133,14 +133,15 @@ public class RingDevicesService : IDisposable
             var latestTimestamp = timestamps.Timestamp.LastOrDefault()?.Timestamp;
             if (latestTimestamp is not null && matchingDevice.LatestSnapshotTime != latestTimestamp)
             {
-                matchingDevice.LatestSnapshotTime = latestTimestamp;
-                
                 try
                 {
                     using var latestSnapshot = await this.Session.GetLatestSnapshot(doorBot.Id);
                     using var latestSnapshotMemoryStream = new MemoryStream();
                     await latestSnapshot.CopyToAsync(latestSnapshotMemoryStream);
                     matchingDevice.LatestSnapshot = latestSnapshotMemoryStream.ToArray();
+                    
+                    // URLs are based on this, so update it last so that we don't fetch previous byte values
+                    matchingDevice.LatestSnapshotTime = latestTimestamp;
                 }
                 catch (WebException)
                 {
