@@ -19,7 +19,7 @@
 	return;
 }
 
-@if (this.Device is null || this.DeviceEvent is null || this.VideoUrl is null)
+@if (this.Device is null || this.DeviceEvent is null)
 {
 	<PageTitle>Oal Home Camera Event</PageTitle>
 
@@ -30,17 +30,17 @@
 	return;
 }
 
-<PageTitle>Oal Home Camera Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime!.Value.ToString()</PageTitle>
+<PageTitle>Oal Home Camera Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime.ToString()</PageTitle>
 
 <h1>
 	<a href="/cameras" class="icon" style="-webkit-mask-image:url('/icons/back.svg')"></a>
-	Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime!.Value.ToString()
+	Event - @this.Device.Description @@ @this.DeviceEvent.CreatedAtDateTime.ToString()
 </h1>
 
 <div class="event-container">
 	<div class="video-container">
 		<video controls autoplay>
-			<source src="@this.VideoUrl" type="video/mp4" />
+			<source src="@this.DeviceEvent.VideoUrl" type="video/mp4" />
 		</video>
 	</div>
 </div>
@@ -50,9 +50,7 @@
 
 	private RingDeviceModel? Device { get; set; }
 
-	private DoorbotHistoryEvent? DeviceEvent { get; set; }
-
-	private string? VideoUrl { get; set; }
+	private RingDeviceHistoryEvent? DeviceEvent { get; set; }
 
 	[Parameter]
 	public string? DeviceId { get; set; }
@@ -72,15 +70,18 @@
 		this.Device = this.RingService.Devices.FirstOrDefault(d => d.Id == deviceIdInt);
 		this.DeviceEvent = this.Device?.Events.FirstOrDefault(e => e.Id == this.EventId);
 
-		var attemptCount = 0;
-		do
+		if (this.DeviceEvent is not null && this.DeviceEvent.VideoUrl is null)
 		{
-			this.VideoUrl = await this.RingService.GetEventVideoUrl(this.EventId!);
-		} while (string.IsNullOrEmpty(this.VideoUrl) && await Task.Delay(1_000).ContinueWith(_ => ++attemptCount < 30));
-
-		await base.OnInitializedAsync();
+			var attemptCount = 0;
+			do
+			{
+				this.DeviceEvent.VideoUrl = await this.RingService.GetEventVideoUrl(this.EventId!);
+			} while (string.IsNullOrEmpty(this.DeviceEvent.VideoUrl) && await Task.Delay(1_000).ContinueWith(_ => ++attemptCount < 30));
+		}
 
 		this.IsInitialized = true;
+
+		await base.OnInitializedAsync();
 	}
 
 	public void Dispose()

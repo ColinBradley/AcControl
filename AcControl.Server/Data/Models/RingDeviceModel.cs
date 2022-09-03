@@ -69,9 +69,9 @@ public class RingDeviceModel : INotifyPropertyChanged
         }
     }
 
-    public ConcurrentBag<DoorbotHistoryEvent> Events { get; } = new ConcurrentBag<DoorbotHistoryEvent>();
+    public ConcurrentBag<RingDeviceHistoryEvent> Events { get; } = new ConcurrentBag<RingDeviceHistoryEvent>();
 
-    public IEnumerable<DoorbotHistoryEvent> GetEventsInOrder()
+    public IEnumerable<RingDeviceHistoryEvent> GetEventsInOrder()
     {
         return this.Events
             .Where(e => e.Kind != "on_demand") // These are just responses to getting share things?

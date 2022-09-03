@@ -42,11 +42,17 @@
 						{
 							<a href="/cameras/@doorBell.Id/events/@latestEvent.Id">
 								<span class="icon" style="-webkit-mask-image:url('@(latestEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
-
-							  @latestEvent.CreatedAtDateTime.Humanize()</a>
+								<span>@latestEvent.CreatedAtDateTime.Humanize()</span>
+								@if(!string.IsNullOrEmpty(latestEvent.VideoUrl))
+								{
+									<video class="preview">
+										<source src="@latestEvent.VideoUrl" type="video/mp4" />
+									</video>
+								}
+							</a>
 						}
 
-						var todaysEventCount = doorBell.GetEventsInOrder().Where(e => e.CreatedAtDateTime != null && e.CreatedAtDateTime.Value.Date == today).Count();
+						var todaysEventCount = doorBell.GetEventsInOrder().Where(e => e.CreatedAtDateTime.Date == today).Count();
 						<a href="/cameras/@doorBell.Id/events">@todaysEventCount event@(todaysEventCount == 1 ? "" : "s") today</a>
 					}
 				</div>
@@ -64,8 +70,9 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		await this.RingService.Subscribe();
 		this.RingService.AnythingChanged += this.RingService_Changed;
+
+		await this.RingService.Subscribe();
 
 		mUpdateTimer = new Timer(
 			_ => this.InvokeAsync(() => this.StateHasChanged()),
@@ -80,8 +87,6 @@
 	private async Task AuthButton_Clicked()
 	{
 		await this.RingService.TryAuth();
-
-		await this.RingService.UpdateDevices();
 	}
 
 	private async void RingService_Changed()

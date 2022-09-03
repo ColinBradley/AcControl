@@ -3,6 +3,7 @@
 	align-items: center;
 	gap: .5em;
 }
+
 .events-container {
 	display: flex;
 	flex-wrap: wrap;
@@ -11,11 +12,6 @@
 }
 
 	.events-container .event-date {
-		min-width: 11em;
-		padding: 1em;
-		background-color: #333;
-		border-radius: .3em;
-		filter: drop-shadow(2px 4px 6px #000);
 	}
 
 		.events-container .event-date h2 {
@@ -26,16 +22,26 @@
 		.events-container .event-date .events {
 			display: flex;
 			flex-direction: column;
-			gap: .5em;
+			gap: 1em;
 		}
 
-		.events-container .event-date .event a {
-			display: flex;
-			align-items: center;
-			gap: .5em;
-			font-size: 1.5em;
-			margin-right: 1em;
+		.events-container .event-date .event {
+			padding: 1em;
+			background-color: #333;
+			border-radius: .3em;
+			filter: drop-shadow(2px 4px 6px #000);
 		}
+
+			.events-container .event-date .event a {
+				display: flex;
+				align-items: center;
+				gap: 1em;
+				font-size: 1.5em;
+			}
+
+			.events-container .event-date .event .preview {
+				max-width: 4em;
+			}
 
 .icon {
 	width: 2em;

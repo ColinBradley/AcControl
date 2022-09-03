@@ -34,7 +34,6 @@
 			transition: transform .1s;
 			object-fit: cover;
 			justify-self: stretch;
-
 		}
 
 			.devices > .device img.preview:hover {
@@ -77,3 +76,13 @@
 				align-items: center;
 				gap: .5em;
 			}
+
+			.devices > .device .details .preview {
+				max-height: 2em;
+				transition: transform .1s;
+			}
+
+				.devices > .device .details .preview:hover {
+					transform: scale(10);
+					z-index: 10;
+				}

@@ -37,6 +37,9 @@ public class RingDevicesService : IDisposable
         mConfig = configuration;
         mHttpClientFactory = httpClientFactory;
 
+        this.CsrfToken = mConfig.GetValue<string?>("Ring:CsrfToken");
+        this.SessionToken = mConfig.GetValue<string?>("Ring:SessionToken");
+
         var session = new Session(
                 mConfig.GetValue<string>("Ring:Username"),
                 mConfig.GetValue<string>("Ring:Password"));
@@ -73,6 +76,10 @@ public class RingDevicesService : IDisposable
     }
 
     public string? AuthCode { get; set; }
+
+    public string? CsrfToken { get; set; }
+
+    public string? SessionToken { get; set; }
 
     public Session Session { get; private set; }
 
@@ -149,14 +156,21 @@ public class RingDevicesService : IDisposable
                 }
             }
 
-            var lastEventTime = matchingDevice.Events.MaxBy(e => e.CreatedAtDateTime)?.CreatedAtDateTime;
-            var historyEvents = lastEventTime is not null
-                ? await this.Session.GetDoorbotsHistory(startDate: lastEventTime.Value.AddSeconds(1), endDate: null, doorbotId: doorBot.Id)
-                : await this.Session.GetDoorbotsHistory(doorbotId: doorBot.Id);
-                
-            foreach (var historyEvent in historyEvents)
+            if (string.IsNullOrEmpty(this.CsrfToken) || string.IsNullOrEmpty(this.SessionToken))
             {
-                matchingDevice.Events.Add(historyEvent);
+                var lastEventTime = matchingDevice.Events.MaxBy(e => e.CreatedAtDateTime)?.CreatedAtDateTime;
+                var historyEvents = lastEventTime is not null
+                    ? await this.Session.GetDoorbotsHistory(startDate: lastEventTime.Value.AddSeconds(1), endDate: null, doorbotId: doorBot.Id)
+                    : await this.Session.GetDoorbotsHistory(doorbotId: doorBot.Id);
+
+                foreach (var historyEvent in historyEvents)
+                {
+                    matchingDevice.Events.Add(RingDeviceHistoryEvent.From(historyEvent));
+                }
+            }
+            else
+            {
+                await this.TryEnrichDeviceHistory(matchingDevice);
             }
         }
 
@@ -173,7 +187,7 @@ public class RingDevicesService : IDisposable
     public async Task<string?> GetEventVideoUrl(string dingId)
     {
         using var httpClient = mHttpClientFactory.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.Session.RingApiBaseUrl, "dings/" + dingId + "/share/download?disable_redirect=true"));
+        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.Session.RingApiBaseUrl, "dings/" + dingId + "/recording?disable_redirect=true"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.Session.AuthenticationToken);
         var httpResult = await httpClient.SendAsync(request);
         var result = await httpResult.Content.ReadFromJsonAsync<DownloadRecording>();
@@ -184,6 +198,55 @@ public class RingDevicesService : IDisposable
     private void RingDeviceModel_Changed(object? sender, PropertyChangedEventArgs e)
     {
         this.AnythingChanged?.Invoke();
+    }
+
+    private async Task TryEnrichDeviceHistory(RingDeviceModel device)
+    {
+        if (string.IsNullOrWhiteSpace(this.CsrfToken) || string.IsNullOrWhiteSpace(this.SessionToken))
+        {
+            return;
+        }
+
+        var result = await SneakyRingApi.GetDeviceHistory(mHttpClientFactory, device.Id.ToString(), this.CsrfToken, this.SessionToken);
+
+        if (result is null)
+        {
+            return;
+        }
+
+        var anythingChanged = false;
+
+        var deviceEventsById = device.Events.ToDictionary(e => e.Id);
+        foreach(var historyEvent in result.items)
+        {
+            if (!deviceEventsById.TryGetValue(historyEvent.event_id, out var deviceEvent))
+            {
+                deviceEvent = new RingDeviceHistoryEvent(historyEvent.event_id, historyEvent.event_type, historyEvent.start_time);
+                device.Events.Add(deviceEvent);
+
+                anythingChanged = true;
+            }
+
+            var videoUrl = historyEvent.visualizations.cloud_media_visualization.media.FirstOrDefault(m => m.file_family == "VIDEO")?.url;
+            var thumbnailUrl = historyEvent.visualizations.cloud_media_visualization.media.FirstOrDefault(m => m.file_family == "THUMBNAIL")?.url;
+
+            if (videoUrl != deviceEvent.VideoUrl)
+            {
+                deviceEvent.VideoUrl = videoUrl;
+                anythingChanged = true;
+            }
+
+            if (thumbnailUrl != deviceEvent.ThumbnailUrl)
+            {
+                deviceEvent.ThumbnailUrl = thumbnailUrl;
+                anythingChanged = true;
+            }
+        }
+
+        if (anythingChanged)
+        {
+            this.AnythingChanged?.Invoke();
+        }
     }
 
     protected virtual void Dispose(bool disposing)
