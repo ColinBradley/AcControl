@@ -1,8 +1,6 @@
 ﻿namespace AcControl.Server.Data;
 
-using KoenZomers.Ring.Api.Entities;
 using System.Net.Http;
-using System.Net.Http.Headers;
 
 public static class SneakyRingApi
 {
@@ -14,8 +12,16 @@ public static class SneakyRingApi
         request.Headers.Add("cookie", $"rs_session={sessionToken}");
         
         using var httpResult = await httpClient.SendAsync(request);
-        
-        return await httpResult.Content.ReadFromJsonAsync<DeviceHistoryResponse>();
+        try
+        {
+            return await httpResult.Content.ReadFromJsonAsync<DeviceHistoryResponse>();
+        } 
+        catch
+        {
+            var content = httpResult.Content.ReadAsStringAsync();
+
+            throw;
+        }
     }
 }
 
@@ -66,7 +72,7 @@ public class Item
     public Properties properties { get; set; }
     public object origin { get; set; }
     public object error_message { get; set; }
-    public DateTime updated_at { get; set; }
+    public DateTime? updated_at { get; set; }
     public Visualizations visualizations { get; set; }
     public Device device { get; set; }
     public string owner_id { get; set; }
@@ -128,7 +134,7 @@ public class Visualizations
 {
     public CloudMediaVisualization cloud_media_visualization { get; set; }
     public LocalMediaVisualization local_media_visualization { get; set; }
-    public RadarVisualization radar_visualization { get; set; }
+    public RadarVisualization? radar_visualization { get; set; }
     public object single_coordinate_visualization { get; set; }
-    public MapVisualization map_visualization { get; set; }
+    public MapVisualization? map_visualization { get; set; }
 }

@@ -3,16 +3,11 @@
 using AcControl.Server.Data.Models;
 using AcControl.Server.Utils;
 using KoenZomers.Ring.Api.Entities;
-using Microsoft.Extensions.Logging;
-using Microsoft.Graph;
-using Microsoft.Identity.Client;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Session = KoenZomers.Ring.Api.Session;
-using SessionInformation = KoenZomers.Ring.Api.Entities.Session;
 
 public class RingDevicesService : IDisposable
 {
@@ -117,7 +112,9 @@ public class RingDevicesService : IDisposable
         var newDeviceList = new List<RingDeviceModel>();
 
         var devices = await this.Session.GetRingDevices();
-        foreach (var doorBot in devices.Doorbots)
+        var doorbots = devices.Doorbots.Select(d => new { d.Id, d.Description, Type = "doorbot" });
+        var cams = devices.StickupCams.Select(d => new { Id = Convert.ToInt32(d.Id!.Value), d.Description, Type = "cam" });
+        foreach (var doorBot in doorbots.Concat(cams))
         {
             var matchingDevice = this.Devices.FirstOrDefault(device => device.Id == doorBot.Id);
             if (matchingDevice is null)
