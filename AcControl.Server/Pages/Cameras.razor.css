@@ -35,6 +35,8 @@
 			grid-column: 1;
 			transition: transform .1s;
 			justify-self: stretch;
+			display: flex;
+			justify-content: center;
 		}
 
 			.devices > .device a.preview:hover {
