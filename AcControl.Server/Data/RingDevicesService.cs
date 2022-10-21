@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Session = KoenZomers.Ring.Api.Session;
 
 public class RingDevicesService : IDisposable
@@ -64,7 +65,14 @@ public class RingDevicesService : IDisposable
                         return;
                     }
 
-                    await this.UpdateDevices();
+                    try
+                    {
+                        await this.UpdateDevices();
+                    }
+                    catch
+                    {
+                        mUpdateDebouncer?.Pause();
+                    }
                 },
                 5_000
             );
@@ -82,7 +90,14 @@ public class RingDevicesService : IDisposable
 
     public async Task TryAuth()
     {
-        _ = await this.Session.Authenticate(twoFactorAuthCode: this.AuthCode);
+        if (this.AuthCode is null)
+        {
+            _ = await this.Session.Authenticate();
+        } 
+        else
+        {
+            _ = await this.Session.Authenticate(twoFactorAuthCode: this.AuthCode);
+        }
     }
 
     public async Task Subscribe()
@@ -192,6 +207,70 @@ public class RingDevicesService : IDisposable
         return result?.Url;
     }
 
+    public async Task<LiveViewStartResult> StartLiveView(int deviceId, string sdp)
+    {
+        using var httpClient = mHttpClientFactory.CreateClient();
+        var riid = "feb5f58f043b9b2c";
+        var sessionId = Guid.NewGuid().ToString();
+
+        // Ensure there is a call to fetch (this is okay to call multiple times - it de-dupes)
+        var request = new HttpRequestMessage(HttpMethod.Post, new Uri($"https://account.ring.com/api/cgw/integrations/v1/liveview/start"));
+        request.Headers.Add("csrf-token", this.CsrfToken);
+        request.Headers.Add("cookie", $"rs_session={this.SessionToken}");
+        request.Headers.Add("riid", riid);
+        request.Content = JsonContent.Create(new { 
+            device_id = deviceId,
+            protococl = "webrtc",
+            riid,
+            sdp,
+            session_id = sessionId,
+        });
+
+        var httpResult = await httpClient.SendAsync(request);
+        var content = await httpResult.Content.ReadFromJsonAsync<LiveViewStartResult>();
+
+        if (content is null)
+        {
+            throw new Exception("Unexpceted failure.");
+        }
+
+        return content;
+    }
+
+    public async Task<DeviceVodDing> GetDeviceCallInformation(int deviceId)
+    {
+        using var httpClient = mHttpClientFactory.CreateClient();
+
+        // Ensure there is a call to fetch (this is okay to call multiple times - it de-dupes)
+        var vodRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(this.Session.RingApiBaseUrl, "doorbots/" + deviceId.ToString() + "/vod"));
+        vodRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.Session.AuthenticationToken);
+        var vodHttpResult = await httpClient.SendAsync(vodRequest);
+        if (vodHttpResult.StatusCode != HttpStatusCode.OK)
+        {
+            throw new Exception("Computer says no");
+        }
+
+        // Retrieve it from active "dings"
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var dingsRequest = new HttpRequestMessage(HttpMethod.Get, new Uri(this.Session.RingApiBaseUrl, "dings/active"));
+            dingsRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", this.Session.AuthenticationToken);
+            var dingsHttpResult = await httpClient.SendAsync(dingsRequest);
+            var activeDings = await dingsHttpResult.Content.ReadFromJsonAsync<DeviceVodDing[]>();
+
+            var matchingDing = activeDings?.FirstOrDefault(ding => ding.DoorbotId == deviceId);
+
+            if (matchingDing is not null)
+            {
+                return matchingDing;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(0.5));
+        }
+
+        throw new Exception("Unable to find matching ding in time");
+    }
+
     private void RingDeviceModel_Changed(object? sender, PropertyChangedEventArgs e)
     {
         this.AnythingChanged?.Invoke();
@@ -267,4 +346,91 @@ public class RingDevicesService : IDisposable
         this.Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+}
+
+public class LiveViewStartResult
+{
+    [JsonPropertyName("sdp")]
+    public string? Sdp { get; set; }
+}
+
+public class DeviceVodDing
+{
+    [JsonPropertyName("id")]
+    public long Id { get; set; }
+
+    [JsonPropertyName("id_str")]
+    public string? IdStr { get; set; }
+
+    [JsonPropertyName("state")]
+    public string? State { get; set; }
+
+    [JsonPropertyName("protocol")]
+    public string? Protocol { get; set; }
+
+    [JsonPropertyName("doorbot_id")]
+    public int DoorbotId { get; set; }
+
+    [JsonPropertyName("doorbot_description")]
+    public string? DoorbotDescription { get; set; }
+
+    [JsonPropertyName("device_kind")]
+    public string? DeviceKind { get; set; }
+
+    [JsonPropertyName("motion")]
+    public bool Motion { get; set; }
+
+    [JsonPropertyName("snapshot_url")]
+    public string? SnapshotUrl { get; set; }
+
+    [JsonPropertyName("kind")]
+    public string? Kind { get; set; }
+
+    [JsonPropertyName("sip_server_ip")]
+    public string? SipServerIp { get; set; }
+
+    [JsonPropertyName("sip_server_port")]
+    public int SipServerPort { get; set; }
+
+    [JsonPropertyName("sip_server_tls")]
+    public bool SipServerTls { get; set; }
+
+    [JsonPropertyName("sip_session_id")]
+    public string? SipSessionId { get; set; }
+
+    [JsonPropertyName("sip_from")]
+    public string? SipFrom { get; set; }
+
+    [JsonPropertyName("sip_to")]
+    public string? SipTo { get; set; }
+
+    [JsonPropertyName("audio_jitter_buffer_ms")]
+    public int AudioJitterBufferMs { get; set; }
+
+    [JsonPropertyName("video_jitter_buffer_ms")]
+    public int VideoJitterBufferMs { get; set; }
+
+    [JsonPropertyName("sip_endpoints")]
+    public object? SipEndpoints { get; set; }
+
+    [JsonPropertyName("expires_in")]
+    public int ExpiresIn { get; set; }
+
+    [JsonPropertyName("now")]
+    public double Now { get; set; }
+
+    [JsonPropertyName("optimization_level")]
+    public int OptimizationLevel { get; set; }
+
+    [JsonPropertyName("sip_token")]
+    public string? SipToken { get; set; }
+
+    [JsonPropertyName("sip_ding_id")]
+    public string? SipDingId { get; set; }
+
+    [JsonPropertyName("detection_type")]
+    public object? DetectionType { get; set; }
+
+    [JsonPropertyName("ding_encrypted")]
+    public bool DingEncrypted { get; set; }
 }

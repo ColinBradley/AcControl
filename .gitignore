@@ -33,3 +33,6 @@ artifacts/
 *.publishproj
 *.xml.user
 *.pubxml.user
+
+node_modules/
+/AcControl.Server/wwwroot/js/

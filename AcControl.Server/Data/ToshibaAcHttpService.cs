@@ -7,7 +7,6 @@ namespace AcControl.Server.Data
         private const string BASE_ADDRESS = "https://mobileapi.toshibahomeaccontrols.com";
         private const string LOGIN_PATH = "/api/Consumer/Login";
         private const string MAPPING_PATH = "/api/AC/GetConsumerACMapping";
-        //private const string GET_UNIT_STATE_PATH = "/api/AC/GetCurrentACState";
         private const string REGISTER_DEVICE_PATH = "/api/Consumer/RegisterMobileDevice";
 
         private readonly IHttpClientFactory mHttpClientFactory;

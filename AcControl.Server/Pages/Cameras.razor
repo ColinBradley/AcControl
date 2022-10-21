@@ -11,7 +11,7 @@
 
 <h1>Cameras</h1>
 
-@if (this.RingService.Session is null)
+@if (mSubscribeFailed)
 {
 	<label>
 		<span>2FA Code:</span>
@@ -32,7 +32,9 @@
 			<h2>@doorBell.Description</h2>
 			@if (doorBell.LatestSnapshot != null && doorBell.LatestSnapshotTime != null)
 			{
-				<img src="/api/ring/snapshots/@doorBell.Id?timestamp=@doorBell.LatestSnapshotTime.Value.ToString("u")" class="preview">
+				<a href="/cameras/@doorBell.Id/live" class="preview">
+					<img src="/api/ring/snapshots/@doorBell.Id?timestamp=@doorBell.LatestSnapshotTime.Value.ToString("u")" class="preview">
+				</a>
 				<span class="updated-time">@doorBell.LatestSnapshotTime.Value.Humanize()</span>
 
 				<div class="details">
@@ -43,7 +45,7 @@
 							<a href="/cameras/@doorBell.Id/events/@latestEvent.Id">
 								<span class="icon" style="-webkit-mask-image:url('@(latestEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
 								<span>@latestEvent.CreatedAtDateTime.Humanize()</span>
-								@if(!string.IsNullOrEmpty(latestEvent.VideoUrl))
+								@if (!string.IsNullOrEmpty(latestEvent.VideoUrl))
 								{
 									<video class="preview">
 										<source src="@latestEvent.VideoUrl" type="video/mp4" />
@@ -67,12 +69,18 @@
 
 @code {
 	private Timer? mUpdateTimer;
+	private bool mSubscribeFailed = false;
 
 	protected override async Task OnInitializedAsync()
 	{
 		this.RingService.AnythingChanged += this.RingService_Changed;
 
-		await this.RingService.Subscribe();
+		try {
+			await this.RingService.Subscribe();
+		} catch {
+			mSubscribeFailed = true;
+			return;
+		}
 
 		mUpdateTimer = new Timer(
 			_ => this.InvokeAsync(() => this.StateHasChanged()),

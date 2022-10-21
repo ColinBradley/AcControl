@@ -30,20 +30,23 @@
 			font-size: 1.5em;
 		}
 
-		.devices > .device img.preview {
+		.devices > .device a.preview {
 			grid-row: 2;
 			grid-column: 1;
-			max-width: 60vw;
-			max-height: 50vh;
 			transition: transform .1s;
-			object-fit: cover;
 			justify-self: stretch;
 		}
 
-			.devices > .device img.preview:hover {
+			.devices > .device a.preview:hover {
 				transform: scale(1.8);
 				z-index: 10;
 			}
+
+		.devices > .device img.preview {
+			max-width: 60vw;
+			max-height: 50vh;
+			object-fit: cover;
+		}
 
 		.devices > .device .updated-time {
 			grid-column: 1;

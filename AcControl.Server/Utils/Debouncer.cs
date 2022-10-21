@@ -6,6 +6,7 @@ public class Debouncer : IDisposable
 {
     private readonly Timer mTimer;
     private bool mIsDisposed;
+    private bool mIsPaused = false;
 
     public Debouncer(Func<Task> action, int intervalMs)
     {
@@ -16,7 +17,7 @@ public class Debouncer : IDisposable
 
             await action();
 
-            if (mIsDisposed)
+            if (mIsDisposed || mIsPaused)
             {
                 return;
             }
@@ -27,12 +28,16 @@ public class Debouncer : IDisposable
 
     public void Ping()
     {
+        mIsPaused = false;
+
         mTimer.Stop();
         mTimer.Start();
     }
 
     public void Pause()
     {
+        mIsPaused = true;
+
         mTimer.Stop();
     }
 
