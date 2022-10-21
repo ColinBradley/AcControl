@@ -12,7 +12,7 @@
             this.Name = initialDetails.Name;
             this.Id = initialDetails.Id;
             this.DeviceUniqueId = initialDetails.DeviceUniqueId;
-            this.StateValue = initialDetails.ACStateData;
+            this.StateValue = new(initialDetails.ACStateData);
 
             var state = UnitState.Parse(initialDetails.ACStateData);
 
@@ -37,7 +37,7 @@
 
         public string DeviceUniqueId { get; }
 
-        public string StateValue { get; private set; }
+        public Property<string> StateValue { get; }
 
         public Property<PowerState> PowerStatus { get; }
 
@@ -53,10 +53,11 @@
 
         public AcUnitModel Update(string stateValue)
         {
-            this.StateValue = stateValue;
+            this.StateValue.Reset(stateValue);
 
             var state = UnitState.Parse(stateValue);
 
+            // TODO: should really just do away with all these properties now and just get the value sfrom the StateValue (now that it's a property too)
             this.PowerStatus.Reset(state.PowerStatus);
             this.Mode.Reset(state.Mode);
             this.TargetTemperature.Reset(state.TargetTemperature);
@@ -74,12 +75,14 @@
                 case PowerState.On:
                     {
                         this.PowerStatus.Target = PowerState.Off;
-                        return "31" + this.StateValue[2..];
+                        this.StateValue.Target = "31" + this.StateValue.Target[2..];
+                        return this.StateValue.Target;
                     }
                 default:
                     {
                         this.PowerStatus.Target = PowerState.On;
-                        return "30" + this.StateValue[2..];
+                        this.StateValue.Target = "30" + this.StateValue.Target[2..];
+                        return this.StateValue.Target;
                     }
             }
         }
@@ -87,8 +90,9 @@
         public string SetTargetTemp(int temp)
         {
             this.TargetTemperature.Target = temp;
+            this.StateValue.Target = this.StateValue.Target[..4] + temp.ToString("X") + this.StateValue.Target[6..];
 
-            return this.StateValue[..4] + temp.ToString("X") + this.StateValue[6..];
+            return this.StateValue.Target;
         }
 
         public string SetMode(AirConditionerMode mode)
@@ -104,7 +108,8 @@
 
             this.Mode.Target = mode;
 
-            return this.StateValue[..2] + modeCode + this.StateValue[4..];
+            this.StateValue.Target = this.StateValue.Target[..2] + modeCode + this.StateValue.Target[4..];
+            return this.StateValue.Target;
         }
 
         public string SetFan(FanMode mode)
@@ -124,7 +129,8 @@
 
             this.FanMode.Target = mode;
 
-            return this.StateValue[..6] + modeCode + this.StateValue[8..];
+            this.StateValue.Target = this.StateValue.Target[..6] + modeCode + this.StateValue.Target[8..];
+            return this.StateValue.Target;
         }
 
         private void Property_Changed() => this.Changed?.Invoke();
