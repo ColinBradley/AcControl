@@ -1,6 +1,7 @@
 ﻿namespace AcControl.Server.Data;
 
 using AcControl.Server.Data.Models;
+using AcControl.Server.Services;
 using AcControl.Server.Utils;
 using KoenZomers.Ring.Api.Entities;
 using System.ComponentModel;
@@ -14,6 +15,8 @@ public class RingDevicesService : IDisposable
 {
     private readonly IConfiguration mConfig;
     private readonly IHttpClientFactory mHttpClientFactory;
+    private readonly ApplicationService mAppService;
+
     private readonly Debouncer mUpdateDebouncer;
 
     private int mSubscriptionCount = 0;
@@ -28,10 +31,11 @@ public class RingDevicesService : IDisposable
     /// </summary>
     public event ChangedEventHandler? AnythingChanged;
 
-    public RingDevicesService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
+    public RingDevicesService(IConfiguration configuration, IHttpClientFactory httpClientFactory, ApplicationService appService)
     {
         mConfig = configuration;
         mHttpClientFactory = httpClientFactory;
+        mAppService = appService;
 
         this.CsrfToken = mConfig.GetValue<string?>("Ring:CsrfToken");
         this.SessionToken = mConfig.GetValue<string?>("Ring:SessionToken");
@@ -90,14 +94,14 @@ public class RingDevicesService : IDisposable
 
     public async Task TryAuth()
     {
-        if (this.AuthCode is null)
-        {
-            _ = await this.Session.Authenticate();
-        } 
-        else
-        {
-            _ = await this.Session.Authenticate(twoFactorAuthCode: this.AuthCode);
-        }
+        _ = this.AuthCode is null ? 
+            await this.Session.Authenticate() : 
+            await this.Session.Authenticate(twoFactorAuthCode: this.AuthCode);
+
+        await mAppService.UpdateConfiguration(new Dictionary<string, string>() { 
+            { "Ring:AccessToken", this.Session.OAuthToken.AccessToken },
+            { "Ring:RefreshToken", this.Session.OAuthToken.RefreshToken } ,
+        });
     }
 
     public async Task Subscribe()
@@ -177,7 +181,7 @@ public class RingDevicesService : IDisposable
 
                 foreach (var historyEvent in historyEvents)
                 {
-                    matchingDevice.Events.Add(RingDeviceHistoryEvent.From(historyEvent));
+                    matchingDevice.Events.Add(historyEvent);
                 }
             }
             else
@@ -283,38 +287,25 @@ public class RingDevicesService : IDisposable
             return;
         }
 
-        var result = await SneakyRingApi.GetDeviceHistory(mHttpClientFactory, device.Id.ToString(), this.CsrfToken, this.SessionToken);
+        var events = await this.Session.GetDoorbotsHistory(doorbotId: device.Id, limit: 100);
+        
 
-        if (result is null)
-        {
-            return;
-        }
+        //var result = await SneakyRingApi.GetDeviceHistory(mHttpClientFactory, device.Id.ToString(), this.CsrfToken, this.SessionToken);
+
+        //if (result is null)
+        //{
+        //    return;
+        //}
 
         var anythingChanged = false;
 
-        var deviceEventsById = device.Events.ToDictionary(e => e.Id);
-        foreach(var historyEvent in result.items)
+        var deviceEventsById = device.Events.ToDictionary(e => e.Id!.Value);
+        foreach(var historyEvent in events)
         {
-            if (!deviceEventsById.TryGetValue(historyEvent.event_id, out var deviceEvent))
+            if (!deviceEventsById.TryGetValue(historyEvent.Id!.Value, out var deviceEvent))
             {
-                deviceEvent = new RingDeviceHistoryEvent(historyEvent.event_id, historyEvent.event_type, historyEvent.start_time);
-                device.Events.Add(deviceEvent);
+                device.Events.Add(historyEvent);
 
-                anythingChanged = true;
-            }
-
-            var videoUrl = historyEvent.visualizations.cloud_media_visualization.media.FirstOrDefault(m => m.file_family == "VIDEO")?.url;
-            var thumbnailUrl = historyEvent.visualizations.cloud_media_visualization.media.FirstOrDefault(m => m.file_family == "THUMBNAIL")?.url;
-
-            if (videoUrl != deviceEvent.VideoUrl)
-            {
-                deviceEvent.VideoUrl = videoUrl;
-                anythingChanged = true;
-            }
-
-            if (thumbnailUrl != deviceEvent.ThumbnailUrl)
-            {
-                deviceEvent.ThumbnailUrl = thumbnailUrl;
                 anythingChanged = true;
             }
         }

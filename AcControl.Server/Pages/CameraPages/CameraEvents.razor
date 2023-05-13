@@ -28,7 +28,7 @@
 	@{
 		var today = DateTime.Now.Date;
 	}
-	@foreach (var eventsByDate in this.Device.GetEventsInOrder().GroupBy(e => e.CreatedAtDateTime.Date))
+	@foreach (var eventsByDate in this.Device.GetEventsInOrder().GroupBy(e => e.CreatedAtDateTime!.Value))
 	{
 		<div class="event-date">
 			<h2>@(eventsByDate.Key.Date == today ? "Today" : eventsByDate.Key.ToString("dd MMMM"))</h2>
@@ -39,11 +39,7 @@
 						<a href="/cameras/@this.DeviceId/events/@deviceEvent.Id">
 							<span class="icon" style="-webkit-mask-image:url('@(deviceEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
 
-							@deviceEvent.CreatedAtDateTime.ToShortTimeString()
-
-							<video class="preview" style="@(string.IsNullOrEmpty(deviceEvent.VideoUrl) ? "display:none;" : "")">
-								<source src="@deviceEvent.VideoUrl" type="video/mp4" />
-							</video>
+							@deviceEvent.CreatedAtDateTime!.Value.ToShortTimeString()
 						</a>
 					</div>
 				}

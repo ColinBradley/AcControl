@@ -1,11 +1,13 @@
 @page "/cameras";
 
 @using AcControl.Server.Data;
+@using AcControl.Server.Services;
 @using Humanizer
 @using KoenZomers.Ring.Api.Entities;
 @implements IDisposable;
 
 @inject RingDevicesService RingService
+@inject ApplicationService AppService
 
 <PageTitle>Oal Home Cameras</PageTitle>
 
@@ -45,16 +47,16 @@
 							<a href="/cameras/@doorBell.Id/events/@latestEvent.Id">
 								<span class="icon" style="-webkit-mask-image:url('@(latestEvent.Kind switch { "ding" => "/icons/doorbell.svg", _ => "/icons/motion.svg" })')"></span>
 								<span>@latestEvent.CreatedAtDateTime.Humanize()</span>
-								@if (!string.IsNullOrEmpty(latestEvent.VideoUrl))
+								@if (!string.IsNullOrEmpty(latestEvent.SnapshotUrl))
 								{
 									<video class="preview">
-										<source src="@latestEvent.VideoUrl" type="video/mp4" />
+										<source src="@latestEvent.SnapshotUrl" type="video/mp4" />
 									</video>
 								}
 							</a>
 						}
 
-						var todaysEventCount = doorBell.GetEventsInOrder().Where(e => e.CreatedAtDateTime.Date == today).Count();
+						var todaysEventCount = doorBell.GetEventsInOrder().Where(e => e.CreatedAtDateTime!.Value.Date == today).Count();
 						<a href="/cameras/@doorBell.Id/events">@todaysEventCount event@(todaysEventCount == 1 ? "" : "s") today</a>
 					}
 				</div>

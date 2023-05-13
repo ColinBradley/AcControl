@@ -15,9 +15,9 @@ namespace AcControl.Server.Data
         {
             mHttpClientFactory = httpClientFactory;
 
-            this.Username = configuration.GetValue<string>("Toshiba:Username");
-            this.Password = configuration.GetValue<string>("Toshiba:Password");
-            this.DeviceId = configuration.GetValue<string>("Toshiba:DeviceId");
+            this.Username = configuration.GetValue<string>("Toshiba:Username")!;
+            this.Password = configuration.GetValue<string>("Toshiba:Password")!;
+            this.DeviceId = configuration.GetValue<string>("Toshiba:DeviceId")!;
 
             this.LoginToken = new(() => this.TryGetAccessToken(CancellationToken.None));
         }

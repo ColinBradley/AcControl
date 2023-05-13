@@ -176,9 +176,19 @@
 
             var indoorTemp = Convert.ToInt32(padded[18..20], 16);
 
-            var outdoorTemp = Convert.ToInt32(padded[20..22], 16);
+            var outdoorTemp = FixSilly(Convert.ToInt32(padded[20..22], 16));
 
             return new UnitState(powerStatus, mode, targetTemperature, fanMode, indoorTemp, outdoorTemp);
+        }
+
+        private static int FixSilly(int value)
+        {
+            while (value > 128)
+            {
+                value -= 128;
+            }
+
+            return value;
         }
     }
 

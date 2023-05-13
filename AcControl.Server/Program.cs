@@ -1,10 +1,6 @@
 using AcControl.Server.Data;
-using Microsoft.AspNetCore.Authentication;
+using AcControl.Server.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 
@@ -37,7 +33,8 @@ builder.Services
     .AddSingleton<AcDevicesService>()
     .AddSingleton<RingDevicesService>()
     .AddSingleton<ToshibaAcHttpService>()
-    .AddSingleton<ToshibaAcMqttService>();
+    .AddSingleton<ToshibaAcMqttService>()
+    .AddSingleton<ApplicationService>();
 
 builder.Services
     .AddApplicationInsightsTelemetry(options =>

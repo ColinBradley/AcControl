@@ -40,7 +40,7 @@
 <div class="event-container">
 	<div class="video-container">
 		<video controls autoplay>
-			<source src="@this.DeviceEvent.VideoUrl" type="video/mp4" />
+			<source src="api/ring/dings/@this.DeviceEvent.Id" type="video/mp4" />
 		</video>
 	</div>
 </div>
@@ -50,7 +50,7 @@
 
 	private RingDeviceModel? Device { get; set; }
 
-	private RingDeviceHistoryEvent? DeviceEvent { get; set; }
+	private DoorbotHistoryEvent? DeviceEvent { get; set; }
 
 	[Parameter]
 	public string? DeviceId { get; set; }
@@ -60,7 +60,7 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		if (!int.TryParse(this.DeviceId, out var deviceIdInt))
+		if (!int.TryParse(this.DeviceId, out var deviceIdInt) || !long.TryParse(this.EventId, out var eventIdLong))
 		{
 			return;
 		}
@@ -68,15 +68,15 @@
 		await this.RingService.Subscribe();
 
 		this.Device = this.RingService.Devices.FirstOrDefault(d => d.Id == deviceIdInt);
-		this.DeviceEvent = this.Device?.Events.FirstOrDefault(e => e.Id == this.EventId);
+		this.DeviceEvent = this.Device?.Events.FirstOrDefault(e => e.Id == eventIdLong);
 
-		if (this.DeviceEvent is not null && this.DeviceEvent.VideoUrl is null)
+		if (this.DeviceEvent is not null && this.DeviceEvent.SnapshotUrl is null)
 		{
 			var attemptCount = 0;
 			do
 			{
-				this.DeviceEvent.VideoUrl = await this.RingService.GetEventVideoUrl(this.EventId!);
-			} while (string.IsNullOrEmpty(this.DeviceEvent.VideoUrl) && await Task.Delay(1_000).ContinueWith(_ => ++attemptCount < 30));
+				this.DeviceEvent.SnapshotUrl = await this.RingService.GetEventVideoUrl(this.EventId);
+			} while (string.IsNullOrEmpty(this.DeviceEvent.SnapshotUrl) && await Task.Delay(1_000).ContinueWith(_ => ++attemptCount < 30));
 		}
 
 		this.IsInitialized = true;

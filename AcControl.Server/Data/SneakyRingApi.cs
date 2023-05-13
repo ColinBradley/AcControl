@@ -12,6 +12,11 @@ public static class SneakyRingApi
         request.Headers.Add("cookie", $"rs_session={sessionToken}");
         
         using var httpResult = await httpClient.SendAsync(request);
+        if (httpResult.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
         try
         {
             return await httpResult.Content.ReadFromJsonAsync<DeviceHistoryResponse>();
@@ -25,6 +30,8 @@ public static class SneakyRingApi
     }
 }
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning disable IDE1006 // Naming Styles
 public class CloudMediaVisualization
 {
     public string schema { get; set; }
@@ -138,3 +145,6 @@ public class Visualizations
     public object single_coordinate_visualization { get; set; }
     public MapVisualization? map_visualization { get; set; }
 }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+#pragma warning restore IDE1006 // Naming Styles
