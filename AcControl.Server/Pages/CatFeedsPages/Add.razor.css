@@ -1,0 +1,134 @@
+﻿.root {
+	display: flex;
+	flex-direction: column;
+	gap: 2em;
+}
+
+h1 {
+	display: inline-flex;
+	gap: 1em;
+	align-items: center;
+	margin: 0;
+	font-size: 2em;
+	position: sticky;
+	top: 0;
+	z-index: 99;
+	background-color: #222d;
+}
+
+	h1 > img.profile {
+		height: 3.5em;
+		aspect-ratio: 1 / 1;
+		border-radius: 10em;
+		border: solid 4px #ccc;
+		filter: drop-shadow(2px 4px 6px #000);
+		cursor: pointer;
+	}
+
+h2 {
+	font-size: 1.5em;
+	margin: 0;
+}
+
+.icon {
+	width: 1.5em;
+	height: 1.5em;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	background-color: #ccc;
+	display: inline-block;
+}
+
+	.icon:hover {
+		background-color: #fff;
+	}
+
+.foods {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+}
+
+	.foods > .group {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 1em;
+		justify-content: center;
+	}
+
+.food {
+	display: grid;
+	width: 12em;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: minmax(0, 1fr) auto;
+	background-color: #333;
+	border-radius: .3em;
+	filter: drop-shadow(2px 4px 6px #000);
+}
+
+	.food.editing {
+		border-style: solid;
+		border-width: 5px;
+		border-color: white;
+	}
+
+	.food .name {
+		text-align: center;
+		padding: .3em;
+		text-shadow: 2px 2px 2px black;
+		cursor: pointer;
+	}
+
+	.food img {
+		height: 10em;
+		place-self: stretch;
+		object-fit: contain;
+		cursor: pointer;
+	}
+
+	.food button {
+		border-radius: .3em;
+		opacity: .3;
+		cursor: initial;
+	}
+
+.upsert-food {
+	display: flex;
+	flex-direction: column;
+	gap: .5em;
+	margin-top: 5em;
+}
+
+	.upsert-food > label {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 1em;
+		align-items: center;
+	}
+
+		.upsert-food > label > input {
+			flex-grow: 1;
+			border-radius: .3em;
+			background-color: transparent;
+			border: 1px solid #ccc;
+			color: #ccc;
+			padding: .2em .4em;
+		}
+
+	.upsert-food > .commands {
+		align-self: center;
+		display: flex;
+		gap: 1em;
+	}
+
+		.upsert-food > .commands > button {
+			padding-left: 3em;
+			padding-right: 3em;
+			max-width: 20em;
+			border-radius: .3em;
+			background-color: #ccc;
+		}

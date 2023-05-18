@@ -1,0 +1,100 @@
+﻿@page "/cat-feeds"
+
+@using AcControl.Server.Data;
+@using AcControl.Server.Data.Models;
+
+@inject OalHomeData Data;
+
+<PageTitle>Oal Home Cat Feeds</PageTitle>
+
+<h1><span>Cat Feedings</span><a href="/cat-feeds/add">Add Entries 😻</a></h1>
+
+@if (mFeeds == null || mFoods == null)
+{
+    <div>Loading...</div>
+
+    return;
+}
+
+<div class="cat-feeds">
+    @{
+        var olafPicture = $"/images/cats/olaf-face-1.jpg";
+        var eviePicture = $"/images/cats/evie-face-1.jpg";
+    }
+    @foreach (var feedDateGroup in mFeeds.OrderByDescending(f => f.Time).GroupBy(f => f.Time.Date))
+    {
+        <h2>@(feedDateGroup.Key.ToLongDateString())</h2>
+
+        @foreach (var feedTimeGroup in feedDateGroup.GroupBy(f => f.Time.Hour))
+        {
+            <h3>@(feedTimeGroup.First().Time.ToLocalTime().ToShortTimeString())</h3>
+            <div class="group">
+                @foreach (var feed in feedTimeGroup)
+                {
+                    var brandAndName = feed.Food.Split(',').Select(v => v.Trim()).ToArray();
+                    var food = mFoods.FirstOrDefault(f => f.Brand == brandAndName[0] && f.Name == brandAndName[1]);
+
+                    <div class="cat-feed">
+                        <div class="heading">
+                            <img class="profile" src=@(feed.Name == "Olaf" ? olafPicture : eviePicture) />
+                            <h4 class="name">@feed.Name</h4>
+
+                            <img class="food" src=@(food?.ImageUrl) title="@food?.Name" />
+                        </div>
+
+
+                        <label>
+                            <input type="checkbox" checked="@feed.StartedImmediately" @bind-value=feed.StartedImmediately @oninput="() => this.UpsertFeed(feed)">
+                            <span>Started Immediately</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" checked="@feed.OneSitting" @bind-value=feed.OneSitting @oninput="() => this.UpsertFeed(feed)">
+                            <span>One Sitting</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" checked="@feed.Finished" @bind-value=feed.Finished @oninput="() => this.UpsertFeed(feed)">
+                            <span>Finished</span>
+                        </label>
+
+                        <button class="bg-danger" @onclick="() => this.DeleteFeed(feed)">Delete</button>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code
+{
+    private List<CatFeed>? mFeeds;
+    private List<CatFood>? mFoods;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var feeds = this.Data.GetCatFeeds().ToList();
+        var foods = this.Data.GetCatFoods().ToList();
+
+        mFeeds = await feeds;
+        mFoods = await foods;
+    }
+
+    private async Task UpsertFeed(CatFeed feed)
+    {
+        // Wait for the binding to update the value
+        await Task.Delay(10);
+
+        await this.Data.UpsertCatFeed(feed);
+    }
+
+    private async Task DeleteFeed(CatFeed feed)
+    {
+        var wasDeleted = await this.Data.DeleteCatFeed(feed);
+
+        if (wasDeleted)
+        {
+            mFeeds!.Remove(feed);
+        }
+    }
+}

@@ -8,18 +8,23 @@
 </div>
 
 <div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
+    <nav class="nav-items">
+        <div class="nav-item">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="oi oi-home" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+        <div class="nav-item">
             <NavLink class="nav-link" href="/ac" Match="NavLinkMatch.All">
                 <span class="oi oi-list-rich" aria-hidden="true"></span> AC
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+        <div class="nav-item">
+            <NavLink class="nav-link" href="/cat-feeds" Match="NavLinkMatch.All">
+                <span class="oi oi-cats" aria-hidden="true"></span> Cats
+            </NavLink>
+        </div>
+        <div class="nav-item">
             <NavLink class="nav-link" href="/cameras" Match="NavLinkMatch.All">
                 <span class="oi oi-camera-slr" aria-hidden="true"></span> Cameras
             </NavLink>

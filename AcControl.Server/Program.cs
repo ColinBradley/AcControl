@@ -34,7 +34,8 @@ builder.Services
     .AddSingleton<RingDevicesService>()
     .AddSingleton<ToshibaAcHttpService>()
     .AddSingleton<ToshibaAcMqttService>()
-    .AddSingleton<ApplicationService>();
+    .AddSingleton<ApplicationService>()
+    .AddSingleton<OalHomeData>();
 
 builder.Services
     .AddApplicationInsightsTelemetry(options =>
@@ -66,3 +67,4 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+

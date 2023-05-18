@@ -1,0 +1,150 @@
+﻿@page "/cat-feeds/add"
+
+@using AcControl.Server.Data;
+@using AcControl.Server.Data.Models;
+
+@inject OalHomeData Data;
+@inject NavigationManager Nav;
+
+<PageTitle>Oal Home Cat Feeds - Add</PageTitle>
+
+@if (mFoods == null)
+{
+    <div>Loading...</div>
+
+    return;
+}
+
+<div class="root">
+    <h1>
+        <a href="/cat-feeds" class="icon" style="-webkit-mask-image:url('/icons/back.svg')"></a>
+        What did @this.ActiveFeed.Name eat?
+        <img class="profile" src=@this.CatProfilePictureUrl @onclick=this.ToggleActiveFeed />
+    </h1>
+
+    <div class="foods">
+        @foreach (var foodGroup in this.FoodsByBrand!)
+        {
+            <h2>@(foodGroup.Key)</h2>
+            <div class="group">
+                @foreach (var food in foodGroup.OrderBy(f => f.Name).OrderBy(f => f.Name))
+                {
+                    var isEditingFood = food.Id == this.NewFood.Id;
+
+                    <div class="food @(isEditingFood ? " editing" : "")">
+                        <div class="name" @onclick="() => AddFeed(food)">
+                            @(food.Name)
+                        </div>
+
+                        <img @onclick="() => AddFeed(food)"
+                             alt=@food.Name
+                             title=@food.Name
+                             src="@food.ImageUrl" />
+
+                        <button @onclick="() => this.NewFood = isEditingFood ? new CatFood() : food">
+                            @(isEditingFood ? "Stop Editing" : "Edit")
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <form class="upsert-food">
+        <h3>@(this.IsEditingFood ? "Editing" : "Add") Food</h3>
+        <label>
+            <span>Brand</span>
+            <input type=text @bind-value=NewFood.Brand placeholder="Lily's Kitchen" />
+        </label>
+        <label>
+            <span>Name</span>
+            <input type=text @bind-value=NewFood.Name placeholder="Chimken" />
+        </label>
+        <label>
+            <span>Image URL</span>
+            <input type=text @bind-value=NewFood.ImageUrl placeholder="https://lol.com/ur_mum.jpg" />
+        </label>
+        <div class="commands">
+            <button type="submit" @onclick=UpsertFood>@(this.IsEditingFood ? "Save" : "Add")</button>
+            @if (this.IsEditingFood)
+            {
+                <button class="bg-danger" @onclick="() => DeleteFood(this.NewFood)">Delete</button>
+            }
+        </div>
+    </form>
+</div>
+
+@code
+{
+    private readonly CatFeed mOlaf = new() { Name = "Olaf", Time = DateTime.UtcNow };
+    private readonly CatFeed mEvie = new() { Name = "Evie", Time = DateTime.UtcNow };
+
+    // Note: Not using HashSet as hash changes while in the collection
+    private List<CatFood>? mFoods;
+
+    public Add()
+    {
+        this.ActiveFeed = mOlaf;
+    }
+
+    public CatFood NewFood { get; set; } = new();
+
+    public CatFeed ActiveFeed { get; set; }
+
+    public string CatProfilePictureUrl => $"/images/cats/{this.ActiveFeed.Name.ToLower()}-face-{Random.Shared.Next(1, 4)}.jpg";
+
+    public IEnumerable<IGrouping<string, CatFood>>? FoodsByBrand => mFoods?.GroupBy(f => f.Brand);
+
+    public bool IsEditingFood => mFoods?.Contains(this.NewFood) ?? false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        mFoods = await this.Data.GetCatFoods().ToList();
+    }
+
+    private void ToggleActiveFeed()
+    {
+        this.ActiveFeed = this.ActiveFeed == mOlaf ? mEvie : mOlaf;
+    }
+
+    private async Task AddFeed(CatFood food)
+    {
+        var activeFeed = this.ActiveFeed;
+
+        activeFeed.Food = $"{food.Brand}, {food.Name}";
+
+        this.ToggleActiveFeed();
+
+        await this.Data.UpsertCatFeed(activeFeed);
+
+        if (mOlaf.Food.Length > 0 && mEvie.Food.Length > 0)
+        {
+            this.Nav.NavigateTo("/cat-feeds");
+        }
+    }
+
+    private async Task UpsertFood()
+    {
+        await this.Data.UpsertCatFood(this.NewFood);
+
+        if (!this.IsEditingFood)
+        {
+            mFoods?.Add(this.NewFood);
+        }
+
+        this.NewFood = new();
+    }
+
+    private async Task DeleteFood(CatFood food)
+    {
+        var wasDeleted = await this.Data.DeleteCatFood(food);
+
+        if (wasDeleted)
+        {
+            mFoods?.Remove(food);
+            this.NewFood = new();
+        }
+    }
+}
