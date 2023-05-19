@@ -131,4 +131,5 @@ h2 {
 			max-width: 20em;
 			border-radius: .3em;
 			background-color: #ccc;
+			cursor: initial;
 		}

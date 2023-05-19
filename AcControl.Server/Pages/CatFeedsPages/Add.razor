@@ -76,22 +76,22 @@
 
 @code
 {
-    private readonly CatFeed mOlaf = new() { Name = "Olaf", Time = DateTime.UtcNow };
     private readonly CatFeed mEvie = new() { Name = "Evie", Time = DateTime.UtcNow };
+    private readonly CatFeed mOlaf = new() { Name = "Olaf", Time = DateTime.UtcNow };
 
     // Note: Not using HashSet as hash changes while in the collection
     private List<CatFood>? mFoods;
 
     public Add()
     {
-        this.ActiveFeed = mOlaf;
+        this.ActiveFeed = mEvie;
     }
 
     public CatFood NewFood { get; set; } = new();
 
     public CatFeed ActiveFeed { get; set; }
 
-    public string CatProfilePictureUrl => $"/images/cats/{this.ActiveFeed.Name.ToLower()}-face-{Random.Shared.Next(1, 4)}.jpg";
+    public string CatProfilePictureUrl => $"/images/cats/{this.ActiveFeed.Name.ToLower()}-face-{Random.Shared.Next(1, 5)}.jpg";
 
     public IEnumerable<IGrouping<string, CatFood>>? FoodsByBrand => mFoods?.GroupBy(f => f.Brand);
 

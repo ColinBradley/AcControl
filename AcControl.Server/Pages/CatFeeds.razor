@@ -7,7 +7,7 @@
 
 <PageTitle>Oal Home Cat Feeds</PageTitle>
 
-<h1><span>Cat Feedings</span><a href="/cat-feeds/add">Add Entries 😻</a></h1>
+<h1><span>Cat Feedings</span><a href="/cat-feeds/add">Add Entries 😸</a></h1>
 
 @if (mFeeds == null || mFoods == null)
 {
@@ -27,9 +27,9 @@
 
         @foreach (var feedTimeGroup in feedDateGroup.GroupBy(f => f.Time.Hour))
         {
-            <h3>@(feedTimeGroup.First().Time.ToLocalTime().ToShortTimeString())</h3>
+            <h3 class="time"><ToLocal DateTime="feedTimeGroup.First().Time" Format="HH:MM"></ToLocal></h3>
             <div class="group">
-                @foreach (var feed in feedTimeGroup)
+                @foreach (var feed in feedTimeGroup.OrderBy(f => f.Name))
                 {
                     var brandAndName = feed.Food.Split(',').Select(v => v.Trim()).ToArray();
                     var food = mFoods.FirstOrDefault(f => f.Brand == brandAndName[0] && f.Name == brandAndName[1]);
@@ -42,21 +42,25 @@
                             <img class="food" src=@(food?.ImageUrl) title="@food?.Name" />
                         </div>
 
+                        <div class="options">
+                            <label>
+                                <input type="checkbox" checked="@feed.StartedImmediately" @bind-value=feed.StartedImmediately @oninput="() => this.UpsertFeed(feed)">
+                                <span>Started Immediately</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" checked="@feed.OneSitting" @bind-value=feed.OneSitting @oninput="() => this.UpsertFeed(feed)">
+                                <span>One Sitting</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" checked="@feed.Finished" @bind-value=feed.Finished @oninput="() => this.UpsertFeed(feed)">
+                                <span>Finished</span>
+                            </label>
+                        </div>
 
-                        <label>
-                            <input type="checkbox" checked="@feed.StartedImmediately" @bind-value=feed.StartedImmediately @oninput="() => this.UpsertFeed(feed)">
-                            <span>Started Immediately</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" checked="@feed.OneSitting" @bind-value=feed.OneSitting @oninput="() => this.UpsertFeed(feed)">
-                            <span>One Sitting</span>
-                        </label>
-                        <label>
-                            <input type="checkbox" checked="@feed.Finished" @bind-value=feed.Finished @oninput="() => this.UpsertFeed(feed)">
-                            <span>Finished</span>
-                        </label>
-
-                        <button class="bg-danger" @onclick="() => this.DeleteFeed(feed)">Delete</button>
+                        <div class="footer">
+                            <div class="food-name">@(food?.Name)</div>
+                            <button class="delete" @onclick="() => this.DeleteFeed(feed)">Delete</button>
+                        </div>
                     </div>
                 }
             </div>

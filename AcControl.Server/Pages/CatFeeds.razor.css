@@ -14,11 +14,15 @@ h2 {
 }
 
 h3 {
-	font-size: 1.3em;
+	font-size: 1.2em;
+}
+
+h3.time {
+	text-align: center;
 }
 
 h4 {
-	font-size: 1.2em;
+	font-size: 1.5em;
 }
 
 h1, h2, h3, h4 {
@@ -35,6 +39,7 @@ h1, h2, h3, h4 {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 1em;
+		justify-content: center;
 	}
 
 .cat-feed {
@@ -68,6 +73,12 @@ h1, h2, h3, h4 {
 		width: 5em;
 	}
 
+	.cat-feed .options {
+		display: flex;
+		flex-direction: column;
+		gap: .3em;
+	}
+
 	.cat-feed label {
 		display: flex;
 		align-items: center;
@@ -78,13 +89,26 @@ h1, h2, h3, h4 {
 	.cat-feed input[type=checkbox] {
 		height: 1em;
 		width: 1em;
+		accent-color: #777;
 	}
 
-	.cat-feed button {
+	.cat-feed .footer {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		align-self: stretch;
+	}
+
+	.cat-feed .footer .food-name {
+		font-size: .8em;
+		opacity: .5;
+	}
+
+	.cat-feed .footer button {
+		cursor: initial;
 		font-size: .8em;
 		border-radius: .3em;
 		border-style: solid;
 		opacity: .3;
-		margin-top: 1em;
 		align-self: end;
 	}
