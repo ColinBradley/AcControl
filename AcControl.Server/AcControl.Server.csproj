@@ -26,10 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="KoenZomers.Ring.Api">
-      <HintPath>..\..\..\ElectricSlack\RingApi\Api\bin\Debug\net7.0\KoenZomers.Ring.Api.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
+    <ProjectReference Include="..\RingApi\RingApi.csproj" />
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

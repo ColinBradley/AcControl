@@ -3,13 +3,13 @@
 using AcControl.Server.Data.Models;
 using AcControl.Server.Services;
 using AcControl.Server.Utils;
-using KoenZomers.Ring.Api.Entities;
+using RingApi.Entities;
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Session = KoenZomers.Ring.Api.Session;
+using Session = RingApi.Session;
 
 public class RingDevicesService : IDisposable
 {

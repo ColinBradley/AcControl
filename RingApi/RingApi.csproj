@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>RingApi</RootNamespace>
+    <AssemblyName>RingApi</AssemblyName>
+  </PropertyGroup>
+</Project>

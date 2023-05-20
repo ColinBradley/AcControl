@@ -1,6 +1,6 @@
 ﻿namespace AcControl.Server.Data.Models;
 
-using KoenZomers.Ring.Api.Entities;
+using RingApi.Entities;
 using System.Collections.Concurrent;
 using System.ComponentModel;
 
