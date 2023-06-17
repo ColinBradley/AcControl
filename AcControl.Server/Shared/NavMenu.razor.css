@@ -59,6 +59,18 @@
 		height: 1.2em;
 	}
 
+	.oi.oi-power {
+		background-color: #ccc;
+		mask-size: contain;
+		mask-image: url('/icons/bolt.svg');
+		mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		-webkit-mask-image: url('/icons/bolt.svg');
+		-webkit-mask-repeat: no-repeat;
+		width: 2em;
+		height: 1.2em;
+	}
+
 @media (min-width: 641px) {
 	.navbar-toggler {
 		display: none;

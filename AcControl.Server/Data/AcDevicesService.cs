@@ -38,7 +38,7 @@
 
                     await this.UpdateUnits();
                 },
-                30_000
+                TimeSpan.FromSeconds(30)
             );
         }
 

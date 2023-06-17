@@ -1,5 +1,6 @@
 using AcControl.Server.Data;
 using AcControl.Server.Services;
+using Blazorise;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
@@ -30,12 +31,24 @@ builder.Services
     .AddMicrosoftIdentityConsentHandler();
 
 builder.Services
+    .AddBlazorise()
+    .AddEmptyProviders();
+
+builder.Services
+    .AddHttpClient(PowerService.HTTP_CLIENT_NAME)
+    .ConfigurePrimaryHttpMessageHandler(
+        () => new HttpClientHandler() { 
+            AllowAutoRedirect = false,
+        });
+
+builder.Services
     .AddSingleton<AcDevicesService>()
     .AddSingleton<RingDevicesService>()
     .AddSingleton<ToshibaAcHttpService>()
     .AddSingleton<ToshibaAcMqttService>()
     .AddSingleton<ApplicationService>()
-    .AddSingleton<OalHomeData>();
+    .AddSingleton<OalHomeData>()
+    .AddSingleton<PowerService>();
 
 builder.Services
     .AddApplicationInsightsTelemetry(options =>

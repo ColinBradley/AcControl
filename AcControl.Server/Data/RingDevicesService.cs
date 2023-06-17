@@ -78,7 +78,7 @@ public class RingDevicesService : IDisposable
                         mUpdateDebouncer?.Pause();
                     }
                 },
-                5_000
+                TimeSpan.FromSeconds(5)
             );
     }
 

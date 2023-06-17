@@ -8,9 +8,9 @@ public class Debouncer : IDisposable
     private bool mIsDisposed;
     private bool mIsPaused = false;
 
-    public Debouncer(Func<Task> action, int intervalMs)
+    public Debouncer(Func<Task> action, TimeSpan interval)
     {
-        mTimer = new Timer(intervalMs);
+        mTimer = new Timer(interval);
         mTimer.Elapsed += async (_, _) =>
         {
             mTimer.Stop();
