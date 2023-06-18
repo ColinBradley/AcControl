@@ -12,76 +12,90 @@
 
 <h1>Power</h1>
 
-@foreach (var inverter in this.Power.Inverters.Where(i => i.IsFullyLoaded))
-{
-    <div class="layout">
-        @{
-            var panelsTotal = inverter.RuntimeData!.Ppv1 + inverter.RuntimeData!.Ppv2;
-            var consumption = inverter.ConsumptionPower;
-            var batteryPercent = inverter.RuntimeData!.Soc;
+@{
+    var inverter = this.Power.Inverters.FirstOrDefault();
+    if (inverter is null || !inverter.IsFullyLoaded)
+    {
+        return;
+    }
+}
 
-            var solarState = panelsTotal > 0 ? "good" : "fair";
-            var batteryState = batteryPercent < 10 ? "bad" : (inverter.RuntimeData!.PDisCharge > 0 || inverter.RuntimeData!.PDisCharge > 0) ? "fair" : "good";
-            var gridState = inverter.RuntimeData!.PToGrid > 0 ? "good" : inverter.RuntimeData!.PToUser > 0 ? "bad" : "fair";
-            var homeState = consumption > 2000 ? "bad" : consumption > 300 ? "fair" : "good";
-        }
-        <div class="container solar @solarState">
-            <div class="icon" style="-webkit-mask-image:url('/icons/solar.svg')"></div>
-            <div style="display: flex; gap: 1em;">
-                <div>Front: <span class="value">@inverter.RuntimeData!.Ppv1</span> W</div>
-                <div>Back: <span class="value">@inverter.RuntimeData!.Ppv2</span> W</div>
-            </div>
+<div class="layout">
+    @{
+        var panelsTotal = inverter.RuntimeData!.Ppv1 + inverter.RuntimeData!.Ppv2;
+        var consumption = inverter.ConsumptionPower;
+        var batteryPercent = inverter.RuntimeData!.Soc;
+
+        var solarState = panelsTotal > 0 ? "good" : "fair";
+        var batteryState = batteryPercent < 10 ? "bad" : (inverter.RuntimeData!.PDisCharge > 0 || inverter.RuntimeData!.PDisCharge > 0) ? "fair" : "good";
+        var gridState = inverter.RuntimeData!.PToGrid > 0 ? "good" : inverter.RuntimeData!.PToUser > 0 ? "bad" : "fair";
+        var homeState = consumption > 2000 ? "bad" : consumption > 300 ? "fair" : "good";
+    }
+    <div class="item solar @solarState">
+        <div class="icon" style="-webkit-mask-image:url('/icons/solar.svg')"></div>
+        <div>
+            <div>Front: <span class="value">@inverter.RuntimeData!.Ppv1</span> W</div>
+            <div>Back: <span class="value">@inverter.RuntimeData!.Ppv2</span> W</div>
             <div>Total: <span class="value">@(panelsTotal)</span> W</div>
         </div>
-        <div class="container battery @batteryState">
-            @{
-                var batteryIconName =
-                    batteryPercent < 5 ? "0" :
-                    batteryPercent < 20 ? "1" :
-                    batteryPercent < 35 ? "2" :
-                    batteryPercent < 50 ? "3" :
-                    batteryPercent < 75 ? "4" :
-                    batteryPercent < 85 ? "5" :
-                    batteryPercent < 98 ? "6" :
-                    "full";
-            }
-            <div style="display: flex; gap: 1em; align-items: center;">
-                <div class="icon" style="-webkit-mask-image:url('/icons/battery/@(batteryIconName).svg')"></div>
-                <div><span class="value">@batteryPercent</span>%</div>
-            </div>
-                @if (inverter.RuntimeData!.PDisCharge > 0)
-                {
-                    <div>Discharging: <span class="value">@inverter.RuntimeData!.PDisCharge</span> W</div>
-                }
-                @if (inverter.RuntimeData!.PCharge > 0)
-                {
-                    <div>Charging: <span class="value">@inverter.RuntimeData!.PCharge</span> W</div>
-                }
-        </div>
-        <div class="container grid @gridState">
-            <div class="icon" style="-webkit-mask-image:url('/icons/pylon.svg')"></div>
-            @if (inverter.RuntimeData!.PToGrid > 0)
-            {
-                <div>Exporting: <span class="value">@inverter.RuntimeData!.PToGrid</span> W</div>
-            }
-            else if (inverter.RuntimeData!.PToUser > 0)
-            {
-                <div>Importing: <span class="value">@inverter.RuntimeData!.PToUser</span> W</div>
-            }
-            else
-            {
-                <div>Idle</div>
-            }
-        </div>
-        <div class="container home @homeState">
-            <div class="icon" style="-webkit-mask-image:url('/icons/home.svg')"></div>
-            <div>Usage: <span class="value">@consumption</span> W</div>
-        </div>
     </div>
-    
-    <LineChart @ref="lineChart" TItem="int"
-               Options="@(new()
+    <div class="item battery @batteryState">
+        @{
+            var batteryIconName =
+                batteryPercent < 5 ? "0" :
+                batteryPercent < 20 ? "1" :
+                batteryPercent < 35 ? "2" :
+                batteryPercent < 50 ? "3" :
+                batteryPercent < 75 ? "4" :
+                batteryPercent < 85 ? "5" :
+                batteryPercent < 98 ? "6" :
+                "full";
+        }
+        <div style="display: flex; gap: 1em; align-items: center;">
+            <div class="icon" style="-webkit-mask-image:url('/icons/battery/@(batteryIconName).svg')"></div>
+            <div><span class="value">@batteryPercent</span>%</div>
+        </div>
+            @if (inverter.RuntimeData!.PDisCharge > 0)
+            {
+                <div>Discharging: <span class="value">@inverter.RuntimeData!.PDisCharge</span> W</div>
+            }
+            @if (inverter.RuntimeData!.PCharge > 0)
+            {
+                <div>Charging: <span class="value">@inverter.RuntimeData!.PCharge</span> W</div>
+            }
+    </div>
+
+    <div class="item home @homeState">
+        <div class="icon" style="-webkit-mask-image:url('/icons/home.svg')"></div>
+        <div>Usage: <span class="value">@consumption</span> W</div>
+    </div>
+
+    <div class="item grid @gridState">
+        <div class="icon" style="-webkit-mask-image:url('/icons/pylon.svg')"></div>
+        @if (inverter.RuntimeData!.PToGrid > 0)
         {
+            <div>Exporting: <span class="value">@inverter.RuntimeData!.PToGrid</span> W</div>
+        }
+        else if (inverter.RuntimeData!.PToUser > 0)
+        {
+            <div>Importing: <span class="value">@inverter.RuntimeData!.PToUser</span> W</div>
+        }
+        else
+        {
+            <div>Idle</div>
+        }
+    </div>
+</div>
+    
+<div style="display: grid; grid-template-columns: minmax(0, 1fr);">
+    <LineChart @ref="mLineChart" TItem="int" Style="max-height: 60vh"
+                Options="@(new()
+        {
+            Animation = new()
+            {
+                Duration = 0,
+            },
+            AspectRatio = 1.5,
             Scales = new() 
             {
                 X = new() 
@@ -90,6 +104,7 @@
                     Grid = new() 
                     {
                         Display = false,
+                        BorderWidth = 0,
                     }
                 },
                 Y = new()
@@ -97,6 +112,7 @@
                     Type = "linear",
                     Grid = new() {
                         Color = "#fff3",
+                        BorderWidth = 0,
                     }
                 }
             },
@@ -108,21 +124,49 @@
                 }
             }
         })" />
-}
+</div>
+
+<div style="display: flex; gap: 1em; align-items: center;">
+    <button @onclick="PreviousDate_Click">&lt;</button>
+    @this.DateAsText
+    <button @onclick="NextDate_Click" disabled="@(this.DateAsText == PowerService.TodaysDateString)">&gt;</button>
+</div>
 
 @code
 {
+    private InverterDaySummaryPoint[]? mCurrentSummary;
+    private DateOnly mChartDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private LineChart<int>? mLineChart;
+
+    private string DateAsText => mChartDate.ToString("yyyy-MM-dd");
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        await this.Power.Subscribe();
         this.Power.Changed += this.Power_Changed;
+
+        await this.Power.Subscribe();
+
+        this.StateHasChanged();
+    }
+
+    private void PreviousDate_Click()
+    {
+        mChartDate = mChartDate.AddDays(-1);
+    }
+
+    private void NextDate_Click()
+    {
+        mChartDate = mChartDate.AddDays(1);
     }
 
     private void Power_Changed()
     {
-        this.StateHasChanged();
+        this.InvokeAsync(() =>
+        {
+            this.StateHasChanged();
+        });
     }
 
     public void Dispose()
@@ -131,42 +175,42 @@
         this.Power.Changed -= this.Power_Changed;
     }
 
-    LineChart<int>? lineChart;
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (this.lineChart is null)
+        var inverter = this.Power.Inverters.FirstOrDefault();
+        if (inverter is null)
         {
             return;
         }
 
-        await HandleRedraw();
+        var summary = await this.Power.GetDaySummary(inverter, this.DateAsText, default);
+
+        this.SetChartData(summary);
     }
 
-    async Task HandleRedraw()
+    private void SetChartData(InverterDaySummaryPoint[] summary)
     {
-        lock (lineChart)
+        if (mLineChart is null)
         {
-            var inverter = this.Power.Inverters.FirstOrDefault();
+            return;
+        }
 
-            lineChart.Clear();
-
-            if (inverter is null)
+        lock (mLineChart)
+        {
+            if (mCurrentSummary == summary)
             {
                 return;
             }
+            mCurrentSummary = summary;
 
-            if (!inverter.DaySummariesByDate.TryGetValue(PowerService.TodaysDateString, out var todaysSummary))
-            {
-                return;
-            }
+            mLineChart.Clear();
 
-            lineChart.AddLabelsDatasetsAndUpdate(
-                todaysSummary.Select(p => p.Time).ToArray(),
+            mLineChart.AddLabelsDatasetsAndUpdate(
+                summary.Select(p => p.Time).ToArray(),
                 new LineChartDataset<int>()
                     {
                         Label = "Solar",
-                        Data = todaysSummary.Select(p => p.SolarPv).ToList(),
+                        Data = summary.Select(p => p.SolarPv).ToList(),
                         BorderColor = new[] { "#70ad4677" },
                         PointRadius = 0,
                         PointHitRadius = 50,
@@ -175,7 +219,7 @@
                 new LineChartDataset<int>()
                     {
                         Label = "Battery",
-                        Data = todaysSummary.Select(p => p.BatteryDischarging).ToList(),
+                        Data = summary.Select(p => p.BatteryDischarging).ToList(),
                         BorderColor = new[] { "#5a9bd577" },
                         PointRadius = 0,
                         PointHitRadius = 50,
@@ -184,8 +228,8 @@
                 new LineChartDataset<int>()
                     {
                         Label = "Grid",
-                        Data = todaysSummary.Select(p => p.GridPower).ToList(),
-                        BorderColor = new[] { "#f6686777" },
+                        Data = summary.Select(p => p.GridPower).ToList(),
+                        BorderColor = new[] { "#f6686755" },
                         PointRadius = 0,
                         PointHitRadius = 50,
                         CubicInterpolationMode = "monotone",
@@ -193,7 +237,7 @@
                 new LineChartDataset<int>()
                     {
                         Label = "Consumption",
-                        Data = todaysSummary.Select(p => p.Consumption).ToList(),
+                        Data = summary.Select(p => p.Consumption).ToList(),
                         BorderColor = new[] { "#ffa46177" },
                         PointRadius = 0,
                         PointHitRadius = 50,

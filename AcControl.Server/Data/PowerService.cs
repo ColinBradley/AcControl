@@ -1,7 +1,6 @@
 ﻿namespace AcControl.Server.Data;
 
 using AcControl.Server.Data.Models;
-using AcControl.Server.Utils;
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading;
@@ -18,7 +17,7 @@ public class PowerService : IDisposable
 
     private readonly ConcurrentDictionary<string, Inverter> mInvertersBySerialNumber = new();
 
-    private readonly Debouncer mUpdateDebouncer;
+    private readonly Timer mUpdateTimer;
     private int mSubscriptionCount = 0;
 
     private bool mIsDisposed;
@@ -32,8 +31,8 @@ public class PowerService : IDisposable
         mConfig = config;
         mClientFactory = httpClientFactory;
 
-        mUpdateDebouncer = new Debouncer(
-            async () =>
+        mUpdateTimer = new Timer(
+            async (_) =>
             {
                 if (mSubscriptionCount <= 0 || mIsDisposed)
                 {
@@ -41,14 +40,30 @@ public class PowerService : IDisposable
                 }
 
                 await this.UpdateInverters(mDisposedCancelationSource.Token);
-            },
-            TimeSpan.FromSeconds(30)
-        );
+            });
     }
 
     public static string TodaysDateString => DateTime.UtcNow.ToString("yyyy-MM-dd");
 
     public Inverter[] Inverters => mInvertersBySerialNumber.Values.ToArray();
+
+    public async Task<InverterDaySummaryPoint[]> GetDaySummary(Inverter inverter, string date, CancellationToken cancellationToken)
+    {
+        if (inverter.DaySummariesByDate.TryGetValue(date, out var existing))
+        {
+            return existing;
+        }
+        
+        var result = await this.GetInverterDaySummary(inverter.InverterData.SerialNum, date, cancellationToken);
+        if (result is null)
+        {
+            return Array.Empty<InverterDaySummaryPoint>();
+        }
+
+        _ = inverter.DaySummariesByDate.TryAdd(date, result);
+
+        return result;
+    }
 
     private async Task UpdateInverters(CancellationToken cancellationToken)
     {
@@ -126,6 +141,8 @@ public class PowerService : IDisposable
         }
 
         await this.UpdateInverters(mDisposedCancelationSource.Token);
+
+        mUpdateTimer.Change(TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
     }
 
     public void Unsubscribe()
@@ -135,7 +152,7 @@ public class PowerService : IDisposable
             return;
         }
 
-        mUpdateDebouncer.Pause();
+        mUpdateTimer.Change(Timeout.Infinite, Timeout.Infinite);
     }
 
     private async Task Authenticate(CancellationToken cancellationToken)
