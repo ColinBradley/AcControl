@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading;
 
-public class PowerService : IDisposable
+public class LuxPowerTekService : IDisposable
 {
     public const string HTTP_CLIENT_NAME = "LuxPowerTek";
 
@@ -26,7 +26,7 @@ public class PowerService : IDisposable
     public delegate void ChangedEventHandler();
     public event ChangedEventHandler? Changed;
 
-    public PowerService(IConfiguration config, IHttpClientFactory httpClientFactory)
+    public LuxPowerTekService(IConfiguration config, IHttpClientFactory httpClientFactory)
     {
         mConfig = config;
         mClientFactory = httpClientFactory;
@@ -115,7 +115,7 @@ public class PowerService : IDisposable
                 })(),
                 new Func<Task>(async () =>
                 {
-                    var todaysDate = PowerService.TodaysDateString;
+                    var todaysDate = LuxPowerTekService.TodaysDateString;
                     var todaysSummaryPoints = await this.GetInverterDaySummary(inverterData.SerialNum, todaysDate, inverterCancelationToken);
                     if (todaysSummaryPoints != null
                         && (!inverter.DaySummariesByDate.TryGetValue(todaysDate, out var currentSummaryPoints)

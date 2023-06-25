@@ -35,7 +35,7 @@ builder.Services
     .AddEmptyProviders();
 
 builder.Services
-    .AddHttpClient(PowerService.HTTP_CLIENT_NAME)
+    .AddHttpClient(LuxPowerTekService.HTTP_CLIENT_NAME)
     .ConfigurePrimaryHttpMessageHandler(
         () => new HttpClientHandler() { 
             AllowAutoRedirect = false,
@@ -48,7 +48,7 @@ builder.Services
     .AddSingleton<ToshibaAcMqttService>()
     .AddSingleton<ApplicationService>()
     .AddSingleton<OalHomeData>()
-    .AddSingleton<PowerService>();
+    .AddSingleton<LuxPowerTekService>();
 
 builder.Services
     .AddApplicationInsightsTelemetry(options =>
