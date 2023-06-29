@@ -45,27 +45,27 @@
     <div class="item battery @batteryState">
         @{
             var batteryIconName =
-                batteryPercent < 5 ? "0" :
-                batteryPercent < 20 ? "1" :
-                batteryPercent < 35 ? "2" :
-                batteryPercent < 50 ? "3" :
-                batteryPercent < 75 ? "4" :
-                batteryPercent < 85 ? "5" :
-                batteryPercent < 98 ? "6" :
-                "full";
+            batteryPercent < 5 ? "0" :
+            batteryPercent < 20 ? "1" :
+            batteryPercent < 35 ? "2" :
+            batteryPercent < 50 ? "3" :
+            batteryPercent < 75 ? "4" :
+            batteryPercent < 85 ? "5" :
+            batteryPercent < 98 ? "6" :
+            "full";
         }
         <div style="display: flex; gap: 1em; align-items: center;">
             <div class="icon" style="-webkit-mask-image:url('/icons/battery/@(batteryIconName).svg')"></div>
             <div><span class="value">@batteryPercent</span>%</div>
         </div>
-            @if (inverter.RuntimeData!.PDisCharge > 0)
-            {
-                <div>Discharging: <span class="value">@inverter.RuntimeData!.PDisCharge</span> W</div>
-            }
-            @if (inverter.RuntimeData!.PCharge > 0)
-            {
-                <div>Charging: <span class="value">@inverter.RuntimeData!.PCharge</span> W</div>
-            }
+        @if (inverter.RuntimeData!.PDisCharge > 0)
+        {
+            <div>Discharging: <span class="value">@inverter.RuntimeData!.PDisCharge</span> W</div>
+        }
+        @if (inverter.RuntimeData!.PCharge > 0)
+        {
+            <div>Charging: <span class="value">@inverter.RuntimeData!.PCharge</span> W</div>
+        }
     </div>
 
     <div class="item home @homeState">
@@ -89,22 +89,22 @@
         }
     </div>
 </div>
-    
+
 <div style="display: grid; grid-template-columns: minmax(0, 1fr);">
     <LineChart @ref="mLineChart" TItem="int" Style="max-height: 60vh"
-                Options="@(new()
+               Options="@(new()
         {
             Animation = new()
             {
                 Duration = 0,
             },
             AspectRatio = 1.5,
-            Scales = new() 
+            Scales = new()
             {
-                X = new() 
+                X = new()
                 {
                     Type = "time",
-                    Grid = new() 
+                    Grid = new()
                     {
                         Display = false,
                         BorderWidth = 0,
@@ -119,9 +119,9 @@
                     }
                 }
             },
-            Plugins = new() 
+            Plugins = new()
             {
-                Legend = new() 
+                Legend = new()
                 {
                     Display = false,
                 }
@@ -131,9 +131,9 @@
 
 <div style="display: flex; gap: 1em; align-items: center; justify-content: space-between;">
     <div style="align-self: start; display: flex; gap: 1em; align-items: center; flex-shrink:0;">
-        <button @onclick="PreviousDate_Click">&lt;</button>
+        <button @onclick=PreviousDate_Click>&lt;</button>
         @this.DateAsText
-        <button @onclick="NextDate_Click" disabled="@(this.DateAsText == LuxPowerTekService.TodaysDateString)">&gt;</button>
+        <button @onclick=NextDate_Click disabled="@(this.DateAsText == LuxPowerTekService.TodaysDateString)">&gt;</button>
     </div>
 
     <div>
@@ -141,8 +141,8 @@
             if (mCurrentSummary != null && mCurrentSummary.Length > 0)
             {
                 var todaysCharges = OctopusEnergyService.GetDayCharges(
-                    mCurrentSummary, 
-                    DateOnly.FromDateTime(DateTime.UtcNow));
+                mCurrentSummary,
+                DateOnly.FromDateTime(DateTime.UtcNow));
 
                 <div style="display: flex; gap: 1em;">
                     <div>Today:</div>
@@ -156,9 +156,9 @@
             }
 
             var allCharges = inverter.DaySummariesByDate
-                .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
-                .OrderBy(c => c.Date)
-                .ToArray();
+            .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
+            .OrderBy(c => c.Date)
+            .ToArray();
 
             var earned = allCharges.SkipWhile(c => c.Date < EARNING_START_DATE).Sum(c => c.Earned);
             var total = allCharges.Sum(c => c.Total) - allCharges.TakeWhile(c => c.Date < EARNING_START_DATE).Sum(c => c.Earned);
@@ -174,8 +174,9 @@
             </div>
 
             var totalCost = 12319;
-            <div>
+            <div style="display:flex; align-items:center; gap:1em;">
                 Paid off: <span class="value">@(Math.Round(total / totalCost * 100, 3))%</span>
+                <button @onclick=LoadAll_Click style="font-size:.6em;">Load all</button>
             </div>
         }
     </div>
@@ -186,6 +187,7 @@
     private InverterDaySummaryPoint[]? mCurrentSummary;
     private DateOnly mChartDate = DateOnly.FromDateTime(DateTime.UtcNow);
     private LineChart<int>? mLineChart;
+    private bool mIsDisposed = false;
 
     private string DateAsText => mChartDate.ToString("yyyy-MM-dd");
 
@@ -207,7 +209,30 @@
 
     private void NextDate_Click()
     {
+        if (this.DateAsText == LuxPowerTekService.TodaysDateString)
+        {
+            return;
+        }
+
         mChartDate = mChartDate.AddDays(1);
+    }
+
+    private async Task LoadAll_Click()
+    {
+        var inverter = this.Power.Inverters.FirstOrDefault();
+        if (inverter is null)
+        {
+            return;
+        }
+
+        for (var date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1); !mIsDisposed; date = date.AddDays(-1))
+        {
+            var summary = await this.Power.GetDaySummary(inverter, date.ToString("yyyy-MM-dd"), default);
+            if (summary.Length == 0)
+            {
+                break;
+            }
+        }
     }
 
     private void Power_Changed()
@@ -220,6 +245,7 @@
 
     public void Dispose()
     {
+        mIsDisposed = true;
         this.Power.Unsubscribe();
         this.Power.Changed -= this.Power_Changed;
     }
