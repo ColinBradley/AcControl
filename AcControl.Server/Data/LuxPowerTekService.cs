@@ -178,29 +178,40 @@ public class LuxPowerTekService : IDisposable
 
     private async Task<InverterData[]?> GetInverters(CancellationToken cancellationToken)
     {
-        await this.EnsureAuthenticated(cancellationToken);
-
-        var client = mClientFactory.CreateClient(HTTP_CLIENT_NAME);
-        var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            "https://eu.luxpowertek.com/WManage/web/config/inverter/list")
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            Content = new FormUrlEncodedContent(new[] {
-                new KeyValuePair<string, string>("page", "1"),
-                new KeyValuePair<string, string>("rows", "20"),
-                new KeyValuePair<string, string>("plantId", string.Empty),
-                new KeyValuePair<string, string>("searchText", string.Empty),
-                new KeyValuePair<string, string>("targetSerialNum", string.Empty),
-            }),
-        };
+            await this.EnsureAuthenticated(cancellationToken);
 
-        request.Headers.Add("cookie", mSessionId);
+            var client = mClientFactory.CreateClient(HTTP_CLIENT_NAME);
+            var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                "https://eu.luxpowertek.com/WManage/web/config/inverter/list")
+            {
+                Content = new FormUrlEncodedContent(new[] {
+                    new KeyValuePair<string, string>("page", "1"),
+                    new KeyValuePair<string, string>("rows", "20"),
+                    new KeyValuePair<string, string>("plantId", string.Empty),
+                    new KeyValuePair<string, string>("searchText", string.Empty),
+                    new KeyValuePair<string, string>("targetSerialNum", string.Empty),
+                }),
+            };
 
-        var response = await client.SendAsync(request, cancellationToken);
+            request.Headers.Add("cookie", mSessionId);
 
-        var result = await response.Content.ReadFromJsonAsync<PagedResponse<InverterData>>();
+            var response = await client.SendAsync(request, cancellationToken);
 
-        return result?.Rows;
+            if (!response.IsSuccessStatusCode)
+            {
+                mSessionId = null;
+                continue;
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<PagedResponse<InverterData>>();
+
+            return result?.Rows;
+        }
+
+        return null;
     }
 
     private async Task EnsureAuthenticated(CancellationToken cancellationToken)
