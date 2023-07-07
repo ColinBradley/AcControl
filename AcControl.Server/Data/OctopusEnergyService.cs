@@ -17,6 +17,23 @@
             {
                 new DayRate()
                 {
+                    Start = new DateOnly(2023, 7, 1),
+                    Import = new()
+                    {
+                        OffPeakRate = 29.94,
+                        NightRate = 17.96,
+                        DayRate = 41.91,
+                        StandingCharge = 49.77,
+                    },
+                    Export = new()
+                    {
+                        OffPeakRate = 18.94,
+                        NightRate = 6.96,
+                        DayRate = 30.91,
+                    }
+                },
+                new DayRate()
+                {
                     Start = new DateOnly(2023, 2, 14),
                     Import = new()
                     {
@@ -37,8 +54,8 @@
 
         public static DayRate GetDayRate(DateOnly date) => 
             sDayRatesDescending
-                .DefaultIfEmpty(sDayRatesDescending.Last())
-                .FirstOrDefault(r => r.Start < date)!;
+                .DefaultIfEmpty(sDayRatesDescending.First())
+                .FirstOrDefault(r => r.Start <= date)!;
 
         public static DayCharges GetDayCharges(InverterDaySummaryPoint[] usage, DateOnly date)
         {

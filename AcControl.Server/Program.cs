@@ -38,7 +38,8 @@ builder.Services
     .AddHttpClient(LuxPowerTekService.HTTP_CLIENT_NAME)
     .ConfigurePrimaryHttpMessageHandler(
         () => new HttpClientHandler() { 
-            AllowAutoRedirect = false,
+            AllowAutoRedirect = false, // So we have a good signal for when logins work
+            UseCookies = false, // No need and we want the server to always suggest a new cookie for us to store
         });
 
 builder.Services
