@@ -7,9 +7,6 @@
 
 @implements IDisposable
 @inject LuxPowerTekService Power;
-@{
-    var EARNING_START_DATE = new DateOnly(2023, 6, 21);
-}
 
 <PageTitle>Oal Home Power</PageTitle>
 
@@ -156,12 +153,12 @@
             }
 
             var allCharges = inverter.DaySummariesByDate
-            .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
-            .OrderBy(c => c.Date)
-            .ToArray();
+                .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
+                .OrderBy(c => c.Date)
+                .ToArray();
 
-            var earned = allCharges.SkipWhile(c => c.Date < EARNING_START_DATE).Sum(c => c.Earned);
-            var total = allCharges.Sum(c => c.Total) - allCharges.TakeWhile(c => c.Date < EARNING_START_DATE).Sum(c => c.Earned);
+            var earned = allCharges.Sum(c => c.Earned);
+            var total = allCharges.Sum(c => c.Total);
 
             <div style="display: flex; gap: 1em;">
                 <div>Overall:</div>
@@ -175,8 +172,16 @@
 
             var totalCost = 12319;
             <div style="display:flex; align-items:center; gap:1em;">
-                Paid off: <span class="value">@(Math.Round(total / totalCost * 100, 3))%</span>
-                <button @onclick=LoadAll_Click style="font-size:.6em;">Load all</button>
+                @{
+                    var totalPaidOff = total + allCharges.Sum(c => c.Cost);
+                    var averageADay = totalPaidOff / allCharges.Length;
+                    var remaining = totalCost - totalPaidOff;
+                    var daysLeft = remaining / averageADay;
+                }
+
+                <div>Paid off: <span class="value" title="£@totalPaidOff.ToString("0.00") @@ ~£@averageADay.ToString("0.00") a day">@(Math.Round(totalPaidOff / totalCost * 100, 3))%</span></div>
+                <div>Done in: @ToHumanReadableString(TimeSpan.FromDays(daysLeft))</div>
+                <button @onclick=LoadAll_Click style="font-size:.6em;">Load all (@allCharges.Length Days)</button>
             </div>
         }
     </div>
@@ -228,6 +233,9 @@
         for (var date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1); !mIsDisposed; date = date.AddDays(-1))
         {
             var summary = await this.Power.GetDaySummary(inverter, date.ToString("yyyy-MM-dd"), default);
+
+            _ = this.InvokeAsync(this.StateHasChanged);
+
             if (summary.Length == 0)
             {
                 break;
@@ -325,5 +333,20 @@
                     }
             );
         }
+    }
+
+    public static string ToHumanReadableString(TimeSpan time)
+    {
+        if (time.TotalDays >= 365)
+        {
+            var remainingDays = time.TotalDays % 365;
+            return $"{Math.Floor(time.TotalDays / 365)} years, {Math.Floor(remainingDays / 30)} months, {Math.Floor(remainingDays % 30)} days";
+        }
+        if (time.TotalDays >= 30)
+        {
+            return $"{Math.Floor(time.TotalDays / 30)} months, {Math.Floor(time.TotalDays % 30)} days";
+        }
+
+        return $@"{time:%d} days";
     }
 }
