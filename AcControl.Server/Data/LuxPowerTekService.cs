@@ -53,7 +53,7 @@ public class LuxPowerTekService : IDisposable
         {
             return existing;
         }
-        
+
         var result = await this.GetInverterDaySummary(inverter.InverterData.SerialNum, date, cancellationToken);
         if (result is null)
         {
@@ -172,7 +172,7 @@ public class LuxPowerTekService : IDisposable
         }
 
         var cookies = response.Headers.GetValues("Set-Cookie").ToArray();
-        
+
         mSessionId = cookies.FirstOrDefault(c => c.Contains(SESSION_COOKIE_PREFIX))!.Split(";").FirstOrDefault(c => c.StartsWith(SESSION_COOKIE_PREFIX));
     }
 
