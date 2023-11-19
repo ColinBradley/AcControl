@@ -36,7 +36,7 @@ namespace AcControl.Server.Data
                 TimeStamp = DateTime.UtcNow.TimeOfDay.ToString(),
                 Cmd = "CMD_FCU_TO_AC",
                 Payload = new() { Data = state },
-                TargetId = new[] { targetId },
+                TargetId = [targetId],
             };
 
             await this.SendCommand(command);

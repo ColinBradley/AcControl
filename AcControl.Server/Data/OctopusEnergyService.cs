@@ -9,12 +9,12 @@
     {
         private static readonly DayRate[] sDayRatesDescending;
         private static readonly TimeSpan sHour = TimeSpan.FromHours(1);
-        
+
         static OctopusEnergyService()
         {
             // Check: https://octopus.energy/smart/flux/
-            sDayRatesDescending = new[]
-            {
+            sDayRatesDescending =
+            [
                 new DayRate()
                 {
                     Start = new DateOnly(2023, 7, 1),
@@ -49,10 +49,10 @@
                         DayRate = 34.81,
                     }
                 },
-            };
+            ];
         }
 
-        public static DayRate GetDayRate(DateOnly date) => 
+        public static DayRate GetDayRate(DateOnly date) =>
             sDayRatesDescending
                 .DefaultIfEmpty(sDayRatesDescending.First())
                 .FirstOrDefault(r => r.Start <= date)!;
@@ -78,40 +78,26 @@
                 var timeRate = timeSpan / sHour / 1000;
                 lastTime = time;
 
+                var costRate = time.Hour switch
+                {
+                    >= 2 and <= 5 => dayRate.Import.NightRate,
+                    >= 16 and <= 19 => dayRate.Import.DayRate,
+                    _ => dayRate.Import.OffPeakRate,
+                };
+
                 if (item.GridPower > 0)
                 {
-                    var rate = time.Hour switch
-                    {
-                        >= 2 and <= 5 => dayRate.Export.NightRate,
-                        >= 16 and <= 19 => dayRate.Export.DayRate,
-                        _ => dayRate.Export.OffPeakRate,
-                    };
-
-                    earned += item.GridPower * timeRate * rate;
-                } 
+                    earned += item.GridPower * timeRate * costRate;
+                }
                 else if (item.GridPower < 0)
                 {
-                    var rate = time.Hour switch
-                    {
-                        >= 2 and <= 5 => dayRate.Import.NightRate,
-                        >= 16 and <= 19 => dayRate.Import.DayRate,
-                        _ => dayRate.Import.OffPeakRate,
-                    };
-
-                    cost += -item.GridPower * timeRate * rate;
+                    cost += -item.GridPower * timeRate * costRate;
                 }
 
-                var greenConsumption = item.Consumption - Math.Min(item.GridPower, 0);
+                var greenConsumption = item.Consumption + Math.Max(item.GridPower, 0);
                 if (greenConsumption > 0)
                 {
-                    var rate = time.Hour switch
-                    {
-                        >= 2 and <= 5 => dayRate.Import.NightRate,
-                        >= 16 and <= 19 => dayRate.Import.DayRate,
-                        _ => dayRate.Import.OffPeakRate,
-                    };
-
-                    savings += greenConsumption * timeRate * rate;
+                    savings += greenConsumption * timeRate * costRate;
                 }
             }
 

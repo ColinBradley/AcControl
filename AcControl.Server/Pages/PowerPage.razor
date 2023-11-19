@@ -138,8 +138,8 @@
             if (mCurrentSummary != null && mCurrentSummary.Length > 0)
             {
                 var todaysCharges = OctopusEnergyService.GetDayCharges(
-                mCurrentSummary,
-                DateOnly.FromDateTime(DateTime.UtcNow));
+                    mCurrentSummary,
+                    DateOnly.FromDateTime(DateTime.UtcNow));
 
                 <div style="display: flex; gap: 1em;">
                     <div>Today:</div>
