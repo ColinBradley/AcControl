@@ -1,8 +1,6 @@
 ﻿namespace AcControl.Server.Data;
 
 using AcControl.Server.Data.Models;
-using Azure;
-using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using System.Net;
 using System.Runtime.CompilerServices;

@@ -24,11 +24,10 @@
 
 .nav-item ::deep a {
 	color: #d7d7d7;
-	border-radius: 4px;
-	height: 3em;
+	border-radius: .3em;
+	min-height: 3em;
 	display: flex;
 	align-items: center;
-	line-height: 3em;
 }
 
 	.nav-item ::deep a.active {
@@ -43,11 +42,12 @@
 
 .oi {
 	width: 2em;
-	font-size: 1.2em;
-	vertical-align: text-bottom;
+	height: 1.2em;
+	font-size: 1.4em;
+	margin-top: -.1em;
 }
 
-	.oi.oi-cats {
+	.oi.cats {
 		background-color: #ccc;
 		mask-size: contain;
 		mask-image: url('/icons/cat-face.svg');
@@ -55,11 +55,9 @@
 		-webkit-mask-size: contain;
 		-webkit-mask-image: url('/icons/cat-face.svg');
 		-webkit-mask-repeat: no-repeat;
-		width: 2em;
-		height: 1.2em;
 	}
 
-	.oi.oi-power {
+	.oi.power {
 		background-color: #ccc;
 		mask-size: contain;
 		mask-image: url('/icons/bolt.svg');
@@ -67,8 +65,30 @@
 		-webkit-mask-size: contain;
 		-webkit-mask-image: url('/icons/bolt.svg');
 		-webkit-mask-repeat: no-repeat;
-		width: 2em;
-		height: 1.2em;
+	}
+
+	.oi.jelly {
+		background-color: #ccc;
+		mask-size: contain;
+		mask-image: url('/icons/jellyfin.svg');
+		mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		-webkit-mask-image: url('/icons/jellyfin.svg');
+		-webkit-mask-repeat: no-repeat;
+	}
+
+	.oi.sonarr {
+		background-image: url('/icons/sonarr-logo.svg');
+		background-size: contain;
+		background-repeat: no-repeat;
+		filter: grayscale();
+	}
+
+	.oi.radarr {
+		background-image: url('/icons/radarr-logo.png');
+		background-size: contain;
+		background-repeat: no-repeat;
+		filter: grayscale();
 	}
 
 @media (min-width: 641px) {

@@ -65,6 +65,84 @@ public class LuxPowerTekService : IDisposable
         return result;
     }
 
+    public async Task UpdateBattery()
+    {
+        await this.EnsureAuthenticated(default);
+
+        var httpClient = mClientFactory.CreateClient(HTTP_CLIENT_NAME);
+
+        var invertersRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "https://eu.luxpowertek.com/WManage/web/config/inverter/list")
+        {
+            Content = new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("page", "1"),
+                new KeyValuePair<string, string>("rows", "20"),
+                new KeyValuePair<string, string>("plantId", string.Empty),
+                new KeyValuePair<string, string>("searchText", string.Empty),
+                new KeyValuePair<string, string>("targetSerialNum", string.Empty),
+            ]),
+        };
+
+        invertersRequest.Headers.Add("cookie", mSessionId);
+
+        var invertersResponse = await httpClient.SendAsync(invertersRequest);
+        var invertersResult = await invertersResponse.Content.ReadFromJsonAsync<PagedResponse<InverterData>>();
+
+        var getMaintenanceRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "https://eu.luxpowertek.com/WManage/web/maintain/remoteRead/read")
+        {
+            Content = new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("inverterSn", invertersResult!.Rows.First().SerialNum),
+                new KeyValuePair<string, string>("startRegister", "80"),
+                new KeyValuePair<string, string>("pointNumber", "40"),
+            ]),
+        };
+
+        getMaintenanceRequest.Headers.Add("cookie", mSessionId);
+
+        var getMaintenanceResponse = await httpClient.SendAsync(getMaintenanceRequest);
+        var getMaintenanceResult = await getMaintenanceResponse.Content.ReadFromJsonAsync<GetMaintenanceResult>();
+        var currentBatteryCutOffPercent = getMaintenanceResult!.HOLD_DISCHG_CUT_OFF_SOC_EOD;
+
+        var ukTimeZone = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
+        var ukTime = TimeZoneInfo.ConvertTime(DateTime.UtcNow, TimeZoneInfo.Utc, ukTimeZone);
+
+        var expectedBatteryCutOffPercent = ukTime.TimeOfDay.Hours switch
+        {
+            > 2 and < 16 => "50",
+            _ => "10",
+        };
+
+        if (expectedBatteryCutOffPercent == currentBatteryCutOffPercent)
+        {
+            return;
+        }
+
+        var setMaintenanceRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "https://eu.luxpowertek.com/WManage/web/maintain/remoteSet/write")
+        {
+            Content = new FormUrlEncodedContent([
+                new KeyValuePair<string, string>("inverterSn", invertersResult.Rows.First().SerialNum),
+                new KeyValuePair<string, string>("holdParam", "HOLD_DISCHG_CUT_OFF_SOC_EOD"),
+                new KeyValuePair<string, string>("valueText", expectedBatteryCutOffPercent),
+                new KeyValuePair<string, string>("clientType", "WEB"),
+                new KeyValuePair<string, string>("remoteSetType", "NORMAL"),
+            ]),
+        };
+
+        setMaintenanceRequest.Headers.Add("cookie", mSessionId);
+
+        var setMaintenanceResponse = await httpClient.SendAsync(setMaintenanceRequest);
+
+        if (!setMaintenanceResponse.IsSuccessStatusCode)
+        {
+            throw new Exception("Http error: " + setMaintenanceResponse.StatusCode.ToString());
+        }
+    }
+
     private async Task UpdateInverters(CancellationToken cancellationToken)
     {
         var inverters = await this.GetInverters(cancellationToken);
@@ -300,15 +378,69 @@ public class LuxPowerTekService : IDisposable
     {
         public int Total { get; set; }
 
-        public T[] Rows { get; set; }
+        public required T[] Rows { get; set; }
     }
 
     private class DaySummaryResponse
     {
-        public string XAxis { get; set; }
+        public required string XAxis { get; set; }
 
         public InverterDaySummaryPoint[]? Data { get; set; }
 
         public bool Success { get; set; }
+    }
+
+    public class GetMaintenanceResult
+    {
+        public required string HOLD_FEED_IN_GRID_POWER_PERCENT { get; set; }
+        public required string HOLD_LEAD_ACID_CHARGE_VOLT_REF { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_MINUTE_1 { get; set; }
+        public bool FUNC_BATTERY_ECO_EN { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_MINUTE_2 { get; set; }
+        public bool FUNC_BAT_SHARED { get; set; }
+        public bool FUNC_BUZZER_EN { get; set; }
+        public required string HOLD_P_TO_USER_START_DISCHG { get; set; }
+        public required string HOLD_LEAD_ACID_DISCHARGE_CUT_OFF_VOLT { get; set; }
+        public required string valueFrame { get; set; }
+        public bool FUNC_TAKE_LOAD_TOGETHER { get; set; }
+        public required string HOLD_FORCED_DISCHG_SOC_LIMIT { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_MINUTE { get; set; }
+        public required string HOLD_LEAD_ACID_DISCHARGE_RATE { get; set; }
+        public required string HOLD_FORCED_CHARGE_END_MINUTE_2 { get; set; }
+        public required string HOLD_DISCHG_CUT_OFF_SOC_EOD { get; set; }
+        public bool success { get; set; }
+        public required string HOLD_VBAT_START_DERATING { get; set; }
+        public required string HOLD_LEAD_ACID_TEMPR_LOWER_LIMIT_CHG { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_HOUR { get; set; }
+        public required string HOLD_FORCED_CHARGE_END_HOUR_2 { get; set; }
+        public required string HOLD_LEAD_ACID_CHARGE_RATE { get; set; }
+        public required string HOLD_FORCED_CHARGE_START_HOUR_2 { get; set; }
+        public bool FUNC_CHARGE_LAST { get; set; }
+        public int BIT_PVCT_SAMPLE_TYPE { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_HOUR_1 { get; set; }
+        public required string HOLD_LEAD_ACID_TEMPR_UPPER_LIMIT_DISCHG { get; set; }
+        public int BIT_CT_SAMPLE_RATIO { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_END_HOUR_2 { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_HOUR_1 { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_HOUR_2 { get; set; }
+        public int BIT_WORKING_MODE { get; set; }
+        public required string HOLD_SET_MASTER_OR_SLAVE { get; set; }
+        public required string HOLD_LEAD_ACID_TEMPR_UPPER_LIMIT_CHG { get; set; }
+        public bool FUNC_GREEN_EN { get; set; }
+        public int BIT_PVCT_SAMPLE_RATIO { get; set; }
+        public required string HOLD_FORCED_CHARGE_START_MINUTE_2 { get; set; }
+        public required string HOLD_EPS_FREQ_SET { get; set; }
+        public required string HOLD_SET_COMPOSED_PHASE { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_MINUTE { get; set; }
+        public required string HOLD_FORCED_DISCHG_POWER_CMD { get; set; }
+        public required string HOLD_CT_POWER_OFFSET { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_HOUR { get; set; }
+        public required string HOLD_EPS_VOLT_SET { get; set; }
+        public bool FUNC_RUN_WITHOUT_GRID { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_MINUTE_1 { get; set; }
+        public required string HOLD_FORCED_DISCHARGE_START_MINUTE_2 { get; set; }
+        public required string HOLD_LEAD_ACID_TEMPR_LOWER_LIMIT_DISCHG { get; set; }
+        public bool FUNC_MICRO_GRID_EN { get; set; }
+        public bool FUNC_PV_GRID_OFF_EN { get; set; }
     }
 }
