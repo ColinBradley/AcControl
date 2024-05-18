@@ -1,6 +1,7 @@
 ﻿namespace AcControl.Server.Data;
 
 using AcControl.Server.Data.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading;
@@ -10,8 +11,10 @@ public class LuxPowerTekService : IDisposable
     public const string HTTP_CLIENT_NAME = "LuxPowerTek";
 
     private const string SESSION_COOKIE_PREFIX = "JSESSIONID";
+
     private readonly IConfiguration mConfig;
     private readonly IHttpClientFactory mClientFactory;
+    private readonly IServiceScopeFactory mScopeFactory;
 
     private string? mSessionId = null;
 
@@ -26,10 +29,11 @@ public class LuxPowerTekService : IDisposable
     public delegate void ChangedEventHandler();
     public event ChangedEventHandler? Changed;
 
-    public LuxPowerTekService(IConfiguration config, IHttpClientFactory httpClientFactory)
+    public LuxPowerTekService(IConfiguration config, IHttpClientFactory httpClientFactory, IServiceScopeFactory scopeFactory)
     {
         mConfig = config;
         mClientFactory = httpClientFactory;
+        mScopeFactory = scopeFactory;
 
         mUpdateTimer = new Timer(
             async (_) =>
@@ -49,20 +53,54 @@ public class LuxPowerTekService : IDisposable
 
     public async Task<InverterDaySummaryPoint[]> GetDaySummary(Inverter inverter, string date, CancellationToken cancellationToken)
     {
-        if (inverter.DaySummariesByDate.TryGetValue(date, out var existing))
+        var isToday = date == LuxPowerTekService.TodaysDateString;
+        if (!isToday && inverter.DaySummariesByDate.TryGetValue(date, out var existing))
         {
-            return existing;
+            var lastEntry = existing.Last();
+
+            var isComplete = !isToday && IsDecentLastEntry(lastEntry);
+
+            if (isComplete)
+            {
+                return existing;
+            }
         }
 
-        var result = await this.GetInverterDaySummary(inverter.InverterData.SerialNum, date, cancellationToken);
+        var asDateOnly = DateOnly.Parse(date);
+        using var scope = mScopeFactory.CreateScope();
+        await using var homeDbContext = scope.ServiceProvider.GetRequiredService<HomeDbContext>();
+        var result = isToday ? null : (await homeDbContext.InverterDaySummaries.FirstOrDefaultAsync(s => s.Date == asDateOnly))?.Entries;
+
         if (result is null)
         {
-            return Array.Empty<InverterDaySummaryPoint>();
+            result = await this.GetInverterDaySummary(inverter.InverterData.SerialNum, date, cancellationToken);
+
+            if (result?.Length is null or 0)
+            {
+                return Array.Empty<InverterDaySummaryPoint>();
+            }
+            else if (!isToday && IsDecentLastEntry(result.Last()))
+            {
+                homeDbContext.InverterDaySummaries.Add(
+                    new InverterDaySummaryEntry()
+                    {
+                        Date = asDateOnly,
+                        Entries = result,
+                    }
+                );
+
+                await homeDbContext.SaveChangesAsync();
+            }
         }
 
-        _ = inverter.DaySummariesByDate.TryAdd(date, result);
+        inverter.DaySummariesByDate[date] = result;
 
         return result;
+    }
+
+    private static bool IsDecentLastEntry(InverterDaySummaryPoint lastEntry)
+    {
+        return lastEntry.Hour == 23 && lastEntry.Minute > 50;
     }
 
     public async Task UpdateBattery()

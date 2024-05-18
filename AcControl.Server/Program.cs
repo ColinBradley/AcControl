@@ -3,6 +3,7 @@ using AcControl.Server.Services;
 using Blazorise;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Data.Sqlite;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using Yarp.ReverseProxy.Transforms;
@@ -28,6 +29,9 @@ builder.Services
 builder.Services
     .AddBlazorise()
     .AddEmptyProviders();
+
+builder.Services
+    .AddSqlite<HomeDbContext>(new SqliteConnectionStringBuilder() { DataSource = "./HomeData.sqlite" }.ToString());
 
 builder.Services
     .AddHttpClient(LuxPowerTekService.HTTP_CLIENT_NAME)
@@ -107,5 +111,10 @@ app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
-app.Run();
+await using (var setupScope = app.Services.CreateAsyncScope())
+{
+    using var context = setupScope.ServiceProvider.GetRequiredService<HomeDbContext>();
+    _ = await context.Database.EnsureCreatedAsync();
+}
 
+app.Run();

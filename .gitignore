@@ -36,3 +36,4 @@ artifacts/
 
 node_modules/
 /AcControl.Server/wwwroot/js/
+/AcControl.Server/HomeData.sqlite*

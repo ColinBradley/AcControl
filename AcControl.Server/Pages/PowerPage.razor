@@ -207,12 +207,14 @@
         this.StateHasChanged();
     }
 
-    private void PreviousDate_Click()
+    private async Task PreviousDate_Click()
     {
         mChartDate = mChartDate.AddDays(-1);
+
+        await this.UpdateData();
     }
 
-    private void NextDate_Click()
+    private async Task NextDate_Click()
     {
         if (this.DateAsText == LuxPowerTekService.TodaysDateString)
         {
@@ -220,6 +222,8 @@
         }
 
         mChartDate = mChartDate.AddDays(1);
+
+        await this.UpdateData();
     }
 
     private async Task LoadAll_Click()
@@ -230,25 +234,23 @@
             return;
         }
 
+        var blankCount = 0;
         for (var date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1); !mIsDisposed; date = date.AddDays(-1))
         {
             var summary = await this.Power.GetDaySummary(inverter, date.ToString("yyyy-MM-dd"), default);
 
             _ = this.InvokeAsync(this.StateHasChanged);
 
-            if (summary.Length == 0)
+            if (summary.Length == 0 && ++blankCount > 15)
             {
                 break;
             }
         }
     }
 
-    private void Power_Changed()
+    private async void Power_Changed()
     {
-        this.InvokeAsync(() =>
-        {
-            this.StateHasChanged();
-        });
+        await this.UpdateData();
     }
 
     public void Dispose()
@@ -258,7 +260,17 @@
         this.Power.Changed -= this.Power_Changed;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool isFirstRender)
+    {
+        if (!isFirstRender)
+        {
+            return;
+        }
+
+        await this.UpdateData();
+    }
+
+    private async Task UpdateData()
     {
         var inverter = this.Power.Inverters.FirstOrDefault();
         if (inverter is null)
