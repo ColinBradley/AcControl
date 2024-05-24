@@ -115,6 +115,13 @@ await using (var setupScope = app.Services.CreateAsyncScope())
 {
     using var context = setupScope.ServiceProvider.GetRequiredService<HomeDbContext>();
     _ = await context.Database.EnsureCreatedAsync();
+
+    var dnsUpdateUrl = app.Configuration.GetValue<string>("Dns:UpdateUrl");
+    if (!string.IsNullOrEmpty(dnsUpdateUrl))
+    {
+        using var httpClient = setupScope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient();
+        await httpClient.GetAsync(dnsUpdateUrl);
+    }
 }
 
 app.Run();
