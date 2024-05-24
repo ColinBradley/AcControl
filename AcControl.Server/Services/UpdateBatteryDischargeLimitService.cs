@@ -1,6 +1,7 @@
 ﻿namespace AcControl.Server.Services;
 
 using AcControl.Server.Data;
+using System.Text.Json;
 
 internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
 {
@@ -33,7 +34,14 @@ internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
     {
         mLogger.LogInformation("UpdateBatteryDischargeLimitService is working");
 
-        await mLuxSerice.UpdateBattery();
+        try
+        {
+            await mLuxSerice.UpdateBattery();
+        } 
+        catch (JsonException ex)
+        {
+            File.WriteAllText("./SomeOtherIssue.txt", ex.ToString());
+        }
     }
 
     public Task StopAsync(CancellationToken stoppingToken)

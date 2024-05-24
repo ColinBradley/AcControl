@@ -4,6 +4,7 @@ using AcControl.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 
 public class LuxPowerTekService : IDisposable
@@ -141,7 +142,19 @@ public class LuxPowerTekService : IDisposable
         getMaintenanceRequest.Headers.Add("cookie", mSessionId);
 
         var getMaintenanceResponse = await httpClient.SendAsync(getMaintenanceRequest);
-        var getMaintenanceResult = await getMaintenanceResponse.Content.ReadFromJsonAsync<GetMaintenanceResult>();
+        
+        GetMaintenanceResult? getMaintenanceResult;
+        try
+        {
+            getMaintenanceResult = await getMaintenanceResponse.Content.ReadFromJsonAsync<GetMaintenanceResult>();
+        } 
+        catch (JsonException)
+        {
+            File.WriteAllText("./ThatFileIssue.txt", await getMaintenanceResponse.Content.ReadAsStringAsync());
+
+            return;
+        }
+
         var currentBatteryCutOffPercent = getMaintenanceResult!.HOLD_DISCHG_CUT_OFF_SOC_EOD;
 
         var ukTimeZone = TimeZoneInfo.FindSystemTimeZoneById("GMT Standard Time");
