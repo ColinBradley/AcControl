@@ -111,7 +111,7 @@ public static class OctopusEnergyService
                 cost += -item.GridPower * timeRate * costRate;
             }
 
-            var greenConsumption = item.Consumption + Math.Max(item.GridPower, 0);
+            var greenConsumption = item.Consumption + Math.Min(item.GridPower, 0);
             if (greenConsumption > 0)
             {
                 savings += greenConsumption * timeRate * costRate;

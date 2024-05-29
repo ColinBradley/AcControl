@@ -180,7 +180,7 @@
                 }
 
                 <div>Paid off: <span class="value" title="£@totalPaidOff.ToString("0.00") @@ ~£@averageADay.ToString("0.00") a day">@(Math.Round(totalPaidOff / totalCost * 100, 3))%</span></div>
-                <div>Done in: @ToHumanReadableString(TimeSpan.FromDays(daysLeft))</div>
+                <div>Done in: @ToHumanReadableString(TimeSpan.FromDays(Math.Min(daysLeft, TimeSpan.MaxValue.TotalDays)))</div>
                 <button @onclick=LoadAll_Click style="font-size:.6em;">Load all (@allCharges.Length Days)</button>
             </div>
         }
