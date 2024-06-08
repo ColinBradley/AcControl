@@ -70,11 +70,11 @@ namespace AcControl.Server.Data
             request.Content = JsonContent.Create(new RegisterDeviceBody()
             {
                 Username = this.Username,
-                DeviceId = this.DeviceId,
+                DeviceId = this.Username + "_" + this.DeviceId,
             });
 
             var result = await httpClient.SendAsync(request, cancellationToken);
-
+            
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<DeviceRegistration>>(cancellationToken: cancellationToken);
 
             return body?.ResObj;

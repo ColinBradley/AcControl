@@ -19,7 +19,7 @@ namespace AcControl.Server.Data
             {
                 var deviceRegistration = await toshibaAcHttpService.RegisterDevice(CancellationToken.None);
 
-                var connectionString = $"HostName={deviceRegistration!.HostName};DeviceId={toshibaAcHttpService.DeviceId};SharedAccessKey={deviceRegistration.PrimaryKey}";
+                var connectionString = $"HostName={deviceRegistration!.HostName};DeviceId={toshibaAcHttpService.Username + "_" + toshibaAcHttpService.DeviceId};SharedAccessKey={deviceRegistration.PrimaryKey}";
                 var client = DeviceClient.CreateFromConnectionString(connectionString, TransportType.Amqp_WebSocket_Only);
                 await client.SetMethodHandlerAsync("smmobile", this.DeviceClient_OnFCUCommandFromAC, null);
                 await client.OpenAsync();
