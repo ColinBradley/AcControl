@@ -3,7 +3,7 @@
 @using AcControl.Server.Data;
 @using AcControl.Server.Data.Models;
 @using static AcControl.Server.Data.LuxPowerTekService;
-@using Blazorise.Charts;
+@using ApexCharts;
 
 @implements IDisposable
 @inject LuxPowerTekService Power;
@@ -88,42 +88,32 @@
 </div>
 
 <div style="display: grid; grid-template-columns: minmax(0, 1fr);">
-    <LineChart @ref="mLineChart" TItem="int" Style="max-height: 60vh"
-               Options="@(new()
-        {
-            Animation = new()
-            {
-                Duration = 0,
-            },
-            AspectRatio = 1.5,
-            Scales = new()
-            {
-                X = new()
-                {
-                    Type = "time",
-                    Grid = new()
-                    {
-                        Display = false,
-                        BorderWidth = 0,
-                    }
-                },
-                Y = new()
-                {
-                    Type = "linear",
-                    Grid = new() {
-                        Color = "#fff3",
-                        BorderWidth = 0,
-                    }
-                }
-            },
-            Plugins = new()
-            {
-                Legend = new()
-                {
-                    Display = false,
-                }
-            }
-        })" />
+    <ApexChart Height="400" Options="this.ChartOptions" @ref="this.Chart">
+        <ApexPointSeries Items="mCurrentSummary"
+                         Name="Consumption"
+                         Color="#ffa46177"
+                         SeriesType="SeriesType.Line"
+                         XValue="e => e.Time"
+                         YValue="e=> e.Consumption" />
+        <ApexPointSeries Items="mCurrentSummary"
+                         Name="Solar"
+                         SeriesType="SeriesType.Line"
+                         XValue="e => e.Time"
+                         Color="#70ad4677"
+                         YValue="e=> e.SolarPv" />
+        <ApexPointSeries Items="mCurrentSummary"
+                         Name="Battery"
+                         Color="#5a9bd577"
+                         SeriesType="SeriesType.Line"
+                         XValue="e => e.Time"
+                         YValue="e=> e.BatteryDischarging" />
+        <ApexPointSeries Items="mCurrentSummary"
+                         Name="Grid"
+                         Color="#f6686755"
+                         SeriesType="SeriesType.Line"
+                         XValue="e => e.Time"
+                         YValue="e=> e.GridPower" />
+    </ApexChart>
 </div>
 
 <div style="display: flex; gap: 1em; align-items: center; justify-content: space-between;">
@@ -138,8 +128,8 @@
             if (mCurrentSummary != null && mCurrentSummary.Length > 0)
             {
                 var todaysCharges = OctopusEnergyService.GetDayCharges(
-                    mCurrentSummary,
-                    DateOnly.FromDateTime(DateTime.UtcNow));
+                mCurrentSummary,
+                DateOnly.FromDateTime(DateTime.UtcNow));
 
                 <div style="display: flex; gap: 1em;">
                     <div>Today:</div>
@@ -153,9 +143,9 @@
             }
 
             var allCharges = inverter.DaySummariesByDate
-                .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
-                .OrderBy(c => c.Date)
-                .ToArray();
+            .Select(p => OctopusEnergyService.GetDayCharges(p.Value, DateOnly.Parse(p.Key)))
+            .OrderBy(c => c.Date)
+            .ToArray();
 
             var earned = allCharges.Sum(c => c.Earned);
             var total = allCharges.Sum(c => c.Total);
@@ -187,178 +177,4 @@
     </div>
 </div>
 
-@code
-{
-    private InverterDaySummaryPoint[]? mCurrentSummary;
-    private DateOnly mChartDate = DateOnly.FromDateTime(DateTime.UtcNow);
-    private LineChart<int>? mLineChart;
-    private bool mIsDisposed = false;
 
-    private string DateAsText => mChartDate.ToString("yyyy-MM-dd");
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-
-        this.Power.Changed += this.Power_Changed;
-
-        await this.Power.Subscribe();
-
-        this.StateHasChanged();
-    }
-
-    private async Task PreviousDate_Click()
-    {
-        mChartDate = mChartDate.AddDays(-1);
-
-        await this.UpdateData();
-    }
-
-    private async Task NextDate_Click()
-    {
-        if (this.DateAsText == LuxPowerTekService.TodaysDateString)
-        {
-            return;
-        }
-
-        mChartDate = mChartDate.AddDays(1);
-
-        await this.UpdateData();
-    }
-
-    private async Task LoadAll_Click()
-    {
-        var inverter = this.Power.Inverters.FirstOrDefault();
-        if (inverter is null)
-        {
-            return;
-        }
-
-        var blankCount = 0;
-        for (var date = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1); !mIsDisposed; date = date.AddDays(-1))
-        {
-            var summary = await this.Power.GetDaySummary(inverter, date.ToString("yyyy-MM-dd"), default);
-
-            _ = this.InvokeAsync(this.StateHasChanged);
-
-            if (summary.Length == 0 && ++blankCount > 15)
-            {
-                break;
-            }
-        }
-    }
-
-    private async void Power_Changed()
-    {
-        await this.UpdateData();
-    }
-
-    public void Dispose()
-    {
-        mIsDisposed = true;
-        this.Power.Unsubscribe();
-        this.Power.Changed -= this.Power_Changed;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool isFirstRender)
-    {
-        if (!isFirstRender)
-        {
-            return;
-        }
-
-        await this.UpdateData();
-    }
-
-    private async Task UpdateData()
-    {
-        var inverter = this.Power.Inverters.FirstOrDefault();
-        if (inverter is null)
-        {
-            return;
-        }
-
-        var summary = await this.Power.GetDaySummary(inverter, this.DateAsText, default);
-
-        this.SetChartData(summary);
-    }
-
-    private void SetChartData(InverterDaySummaryPoint[] summary)
-    {
-        if (mLineChart is null)
-        {
-            return;
-        }
-
-        lock (mLineChart)
-        {
-            if (mCurrentSummary == summary)
-            {
-                return;
-            }
-            mCurrentSummary = summary;
-
-            this.InvokeAsync(() =>
-            {
-                this.StateHasChanged();
-            });
-
-            mLineChart.Clear();
-
-            mLineChart.AddLabelsDatasetsAndUpdate(
-                summary.Select(p => p.Time).ToArray(),
-                new LineChartDataset<int>()
-                    {
-                        Label = "Solar",
-                        Data = summary.Select(p => p.SolarPv).ToList(),
-                        BorderColor = new[] { "#70ad4677" },
-                        PointRadius = 0,
-                        PointHitRadius = 50,
-                        CubicInterpolationMode = "monotone",
-                    },
-                new LineChartDataset<int>()
-                    {
-                        Label = "Battery",
-                        Data = summary.Select(p => p.BatteryDischarging).ToList(),
-                        BorderColor = new[] { "#5a9bd577" },
-                        PointRadius = 0,
-                        PointHitRadius = 50,
-                        CubicInterpolationMode = "monotone",
-                    },
-                new LineChartDataset<int>()
-                    {
-                        Label = "Grid",
-                        Data = summary.Select(p => p.GridPower).ToList(),
-                        BorderColor = new[] { "#f6686755" },
-                        PointRadius = 0,
-                        PointHitRadius = 50,
-                        CubicInterpolationMode = "monotone",
-                    },
-                new LineChartDataset<int>()
-                    {
-                        Label = "Consumption",
-                        Data = summary.Select(p => p.Consumption).ToList(),
-                        BorderColor = new[] { "#ffa46177" },
-                        PointRadius = 0,
-                        PointHitRadius = 50,
-                        CubicInterpolationMode = "monotone",
-                    }
-            );
-        }
-    }
-
-    public static string ToHumanReadableString(TimeSpan time)
-    {
-        if (time.TotalDays >= 365)
-        {
-            var remainingDays = time.TotalDays % 365;
-            return $"{Math.Floor(time.TotalDays / 365)} years, {Math.Floor(remainingDays / 30)} months, {Math.Floor(remainingDays % 30)} days";
-        }
-        if (time.TotalDays >= 30)
-        {
-            return $"{Math.Floor(time.TotalDays / 30)} months, {Math.Floor(time.TotalDays % 30)} days";
-        }
-
-        return $@"{time:%d} days";
-    }
-}

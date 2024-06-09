@@ -1,6 +1,5 @@
 using AcControl.Server.Data;
 using AcControl.Server.Services;
-using Blazorise;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Data.Sqlite;
@@ -25,10 +24,6 @@ builder.Services
 builder.Services
     .AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
-
-builder.Services
-    .AddBlazorise()
-    .AddEmptyProviders();
 
 builder.Services
     .AddSqlite<HomeDbContext>(new SqliteConnectionStringBuilder() { DataSource = "./HomeData.sqlite" }.ToString());
