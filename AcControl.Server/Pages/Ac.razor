@@ -32,7 +32,7 @@
 		<div class="device">
 			<div class="horizontal">
 				<h2>@unit.Name</h2>
-				<button class="power @(unit.PowerStatus.Current == PowerState.On ? "on" : "off") @(unit.PowerStatus.Current != unit.PowerStatus.Target ? "waiting" : "")" @onclick="() => this.PowerButton_Clicked(unit)">
+				<button class="power @(unit.PowerStatus.Current == PowerState.On ? "on" : "off") @(unit.PowerStatus.Current != unit.PowerStatus.Target ? "waiting" : "") @(unit.IsInMaintenance.Current ? "maintenance" : "")" @onclick="() => this.PowerButton_Clicked(unit)">
 				</button>
 			</div>
 			<div class="horizontal" style="gap:.5em;">

@@ -22,6 +22,7 @@
             this.FanMode = new(state.FanMode);
             this.IndoorTemperature = new(state.IndoorTemperature);
             this.OutdoorTemperature = new(state.OutdoorTemperature);
+            this.IsInMaintenance = new(state.IsInMaintenance);
 
             this.PowerStatus.Changed += this.Property_Changed;
             this.Mode.Changed += this.Property_Changed;
@@ -29,6 +30,7 @@
             this.FanMode.Changed += this.Property_Changed;
             this.IndoorTemperature.Changed += this.Property_Changed;
             this.OutdoorTemperature.Changed += this.Property_Changed;
+            this.IsInMaintenance.Changed += this.Property_Changed;
         }
 
         public string Name { get; }
@@ -51,12 +53,14 @@
 
         public Property<int> OutdoorTemperature { get; }
 
+        public Property<bool> IsInMaintenance { get; }
+
         public AcUnitModel Update(string stateValue)
         {
             this.StateValue.Reset(stateValue);
 
             var state = UnitState.Parse(stateValue);
-
+            
             // TODO: should really just do away with all these properties now and just get the value sfrom the StateValue (now that it's a property too)
             this.PowerStatus.Reset(state.PowerStatus);
             this.Mode.Reset(state.Mode);
@@ -64,6 +68,7 @@
             this.FanMode.Reset(state.FanMode);
             this.IndoorTemperature.Reset(state.IndoorTemperature);
             this.OutdoorTemperature.Reset(state.OutdoorTemperature);
+            this.IsInMaintenance.Reset(state.IsInMaintenance);
 
             return this;
         }
@@ -136,7 +141,7 @@
         private void Property_Changed() => this.Changed?.Invoke();
     }
 
-    public readonly record struct UnitState(PowerState PowerStatus, AirConditionerMode Mode, int TargetTemperature, FanMode FanMode, int IndoorTemperature, int OutdoorTemperature)
+    public readonly record struct UnitState(PowerState PowerStatus, AirConditionerMode Mode, int TargetTemperature, FanMode FanMode, int IndoorTemperature, int OutdoorTemperature, bool IsInMaintenance)
     {
         public static UnitState Parse(string state)
         {
@@ -177,8 +182,9 @@
             var indoorTemp = Convert.ToInt32(padded[18..20], 16);
 
             var outdoorTemp = FixSilly(Convert.ToInt32(padded[20..22], 16));
+            var isInMaintenance = powerStatus == PowerState.On && padded[32] == '8';
 
-            return new UnitState(powerStatus, mode, targetTemperature, fanMode, indoorTemp, outdoorTemp);
+            return new UnitState(powerStatus, mode, targetTemperature, fanMode, indoorTemp, outdoorTemp, isInMaintenance);
         }
 
         private static int FixSilly(int value)

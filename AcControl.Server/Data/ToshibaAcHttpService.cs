@@ -57,7 +57,7 @@ namespace AcControl.Server.Data
 
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<AirConditionerGroup[]>>(cancellationToken: cancellationToken);
 
-            return body?.ResObj?[0]?.ACList ?? Array.Empty<AirConditionerUnitDetails>();
+            return (body?.ResObj is null or { Length: 0 } ? null : body?.ResObj?[0].ACList) ?? Array.Empty<AirConditionerUnitDetails>();
         }
 
         public async Task<DeviceRegistration?> RegisterDevice(CancellationToken cancellationToken)

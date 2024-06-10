@@ -54,6 +54,10 @@ h1 {
 				background-color: #5abd5a;
 			}
 
+			.devices > .device button.power.on.maintenance {
+				background-color: #1470c8;
+			}
+
 			.devices > .device button.power.waiting {
 				animation: opacity-pulse alternate .8s linear infinite;
 			}
