@@ -69,7 +69,8 @@ public class LuxPowerTekService : IDisposable
 
         var asDateOnly = DateOnly.Parse(date);
         using var scope = mScopeFactory.CreateScope();
-        await using var homeDbContext = scope.ServiceProvider.GetRequiredService<HomeDbContext>();
+        var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<HomeDbContext>>();
+        await using var homeDbContext = await dbFactory.CreateDbContextAsync();
         var result = isToday ? null : (await homeDbContext.InverterDaySummaries.FirstOrDefaultAsync(s => s.Date == asDateOnly))?.Entries;
 
         if (result is null)

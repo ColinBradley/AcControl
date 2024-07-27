@@ -3,8 +3,11 @@ using AcControl.Server.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using MQTTnet.AspNetCore;
+using System.Text.Json;
 using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,8 +28,11 @@ builder.Services
     .AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
 
+var dbConnectionString = new SqliteConnectionStringBuilder() { DataSource = "./HomeData.sqlite" }.ToString();
 builder.Services
-    .AddSqlite<HomeDbContext>(new SqliteConnectionStringBuilder() { DataSource = "./HomeData.sqlite" }.ToString());
+    .AddDbContextFactory<HomeDbContext>(o =>
+        o.UseSqlite(dbConnectionString)
+    );
 
 builder.Services
     .AddHttpClient(LuxPowerTekService.HTTP_CLIENT_NAME)
@@ -46,7 +52,8 @@ builder.Services
     .AddSingleton<LuxPowerTekService>();
 
 builder.Services
-    .AddHostedService<UpdateBatteryDischargeLimitService>();
+    .AddHostedService<UpdateBatteryDischargeLimitService>()
+    .AddHostedService<AirGradientMqttRecorder>();
 
 builder.Services
     .AddApplicationInsightsTelemetry(options =>
@@ -65,12 +72,23 @@ builder.Services
 builder.Services
     .AddLettuceEncrypt();
 
+builder.Services.AddHostedMqttServer(
+    o =>
+    {
+        o.WithDefaultEndpoint();
+    })
+    .AddMqttConnectionHandler()
+    .AddConnections();
+
 builder.WebHost.UseKestrel(k =>
 {
     k.ConfigureHttpsDefaults(h =>
     {
         _ = h.UseLettuceEncrypt(k.ApplicationServices);
     });
+    
+    k.ListenAnyIP(1883, l => l.UseMqtt());
+    k.ListenAnyIP(443, l => l.UseHttps());
 });
 
 var app = builder.Build();
@@ -106,10 +124,40 @@ app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
+app.UseMqttServer(
+    server =>
+    {
+        server.ValidatingConnectionAsync += e =>
+        {
+            Console.WriteLine("ValidatingConnectionAsync: " + JsonSerializer.Serialize(e));
+
+            if (!string.Equals(e.Password, builder.Configuration.GetValue<string>("Mqtt:Password"), StringComparison.Ordinal)) {
+                e.ReasonCode = MQTTnet.Protocol.MqttConnectReasonCode.BadUserNameOrPassword;
+            }
+            
+            return Task.CompletedTask;
+        };
+
+        server.ApplicationMessageNotConsumedAsync += e =>
+        {
+            Console.WriteLine("ApplicationMessageNotConsumedAsync: " + JsonSerializer.Serialize(e));
+
+            return Task.CompletedTask;
+        };
+
+        server.InterceptingPublishAsync += e =>
+        {
+            Console.WriteLine("InterceptingPublishAsync: " + JsonSerializer.Serialize(e.ApplicationMessage));
+
+            return Task.CompletedTask;
+        };
+    });
+
 await using (var setupScope = app.Services.CreateAsyncScope())
 {
-    using var context = setupScope.ServiceProvider.GetRequiredService<HomeDbContext>();
-    _ = await context.Database.EnsureCreatedAsync();
+    var dbFactory = setupScope.ServiceProvider.GetRequiredService<IDbContextFactory<HomeDbContext>>();
+    await using var context = await dbFactory.CreateDbContextAsync();
+    await context.Database.MigrateAsync();
 
     var dnsUpdateUrl = app.Configuration.GetValue<string>("Dns:UpdateUrl");
     if (!string.IsNullOrEmpty(dnsUpdateUrl))

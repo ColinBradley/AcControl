@@ -1,0 +1,71 @@
+﻿@page "/air"
+
+@using AcControl.Server.Data
+@using AcControl.Server.Data.Models
+@using static AcControl.Server.Data.LuxPowerTekService
+@using ApexCharts
+@using Microsoft.EntityFrameworkCore
+
+@inject IDbContextFactory<HomeDbContext> HomeDbFactory
+
+<PageTitle>Oal Home Air</PageTitle>
+
+<h1>Air</h1>
+
+<div style="display:flex; gap:1em; align-items:center; margin-top:1em;">
+    <input type="date" value="@this.DateAsText" @oninput="this.DatePicker_Input" />
+
+    <button @onclick="this.RefreshButton_Click">Refresh</button>
+</div>
+
+<ApexChart Height="400" Options="this.ChartOptions" @ref="this.Chart">
+    @foreach (var entryBySerial in this.CurrentDayEntries.GroupBy(e => e.SerialNumber))
+    {
+        var name = HumanName(this.ActiveSensorType)
+        + " for "
+        + (entryBySerial.Key switch
+        {
+            "404cca68ed94" => "Office",
+            "84fce60705c4" => "Bedroom",
+            _ => $"Unknown ({entryBySerial.Key})",
+        });
+
+        Func<AirGradientSensorEntry, decimal?> valueFetcher = this.ActiveSensorType switch
+        {
+            AirGradientSensorType.WiFiStrength => e => Convert.ToDecimal(e.WiFiStrength),
+            AirGradientSensorType.RCo2 => e => Convert.ToDecimal(e.RCo2),
+            AirGradientSensorType.Pm01 => e => Convert.ToDecimal(e.Pm01),
+            AirGradientSensorType.Pm02 => e => Convert.ToDecimal(e.Pm02),
+            AirGradientSensorType.Pm10 => e => Convert.ToDecimal(e.Pm10),
+            AirGradientSensorType.Pm003Count => e => Convert.ToDecimal(e.Pm003Count),
+            AirGradientSensorType.Atmp => e => Convert.ToDecimal(e.Atmp),
+            AirGradientSensorType.AtmpCompensated => e => Convert.ToDecimal(e.AtmpCompensated),
+            AirGradientSensorType.Rhum => e => Convert.ToDecimal(e.Rhum),
+            AirGradientSensorType.RhumCompensated => e => Convert.ToDecimal(e.RhumCompensated),
+            AirGradientSensorType.TvocIndex => e => Convert.ToDecimal(e.TvocIndex),
+            AirGradientSensorType.TvocRaw => e => Convert.ToDecimal(e.TvocRaw),
+            AirGradientSensorType.NoxIndex => e => Convert.ToDecimal(e.NoxIndex),
+            AirGradientSensorType.NoxRaw => e => Convert.ToDecimal(e.NoxRaw),
+        };
+
+        <ApexPointSeries Items="entryBySerial"
+                         Name="@name"
+                         SeriesType="SeriesType.Line"
+                         Color="@(entryBySerial.Key switch
+        {
+            "404cca68ed94" => "#c7f464",
+            "84fce60705c4" => "#3a9a93",
+            _ => null,
+        })"
+                         XValue="e => e.DateTime.ToLocalTime()"
+                         YValue="valueFetcher" />
+    }
+</ApexChart>
+
+<div style="display:flex; gap:1em; flex-wrap:wrap;">
+
+    @foreach (var type in Enum.GetValues<AirGradientSensorType>())
+    {
+        <button @onclick="_ => this.SensorTypeButton_Click(type)">@HumanName(type)</button>
+    }
+</div>

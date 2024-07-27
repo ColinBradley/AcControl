@@ -11,6 +11,8 @@ public class HomeDbContext : DbContext
 
     public DbSet<InverterDaySummaryEntry> InverterDaySummaries { get; set; }
 
+    public DbSet<AirGradientSensorEntry> AirGradientSensorEntries { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

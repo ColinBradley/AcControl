@@ -47,6 +47,16 @@
 	margin-top: -.1em;
 }
 
+	.oi.ac {
+		background-color: #ccc;
+		mask-size: contain;
+		mask-image: url('/icons/heatpump.svg');
+		mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		-webkit-mask-image: url('/icons/heatpump.svg');
+		-webkit-mask-repeat: no-repeat;
+	}
+
 	.oi.cats {
 		background-color: #ccc;
 		mask-size: contain;
@@ -64,6 +74,16 @@
 		mask-repeat: no-repeat;
 		-webkit-mask-size: contain;
 		-webkit-mask-image: url('/icons/bolt.svg');
+		-webkit-mask-repeat: no-repeat;
+	}
+
+	.oi.air {
+		background-color: #ccc;
+		mask-size: contain;
+		mask-image: url('/icons/cloud.svg');
+		mask-repeat: no-repeat;
+		-webkit-mask-size: contain;
+		-webkit-mask-image: url('/icons/cloud.svg');
 		-webkit-mask-repeat: no-repeat;
 	}
 

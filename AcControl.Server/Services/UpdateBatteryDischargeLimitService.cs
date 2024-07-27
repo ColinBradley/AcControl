@@ -5,21 +5,19 @@ using System.Text.Json;
 
 internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
 {
-    private readonly ILogger<UpdateBatteryDischargeLimitService> mLogger;
-    private readonly LuxPowerTekService mLuxSerice;
+    private readonly LuxPowerTekService mLuxService;
 
     private Timer? mTimer = null;
 
-    public UpdateBatteryDischargeLimitService(ILogger<UpdateBatteryDischargeLimitService> logger, LuxPowerTekService luxService)
+    public UpdateBatteryDischargeLimitService(
+        LuxPowerTekService luxService
+    )
     {
-        mLogger = logger;
-        mLuxSerice = luxService;
+        mLuxService = luxService;
     }
 
     public Task StartAsync(CancellationToken stoppingToken)
     {
-        mLogger.LogInformation("UpdateBatteryDischargeLimitService running.");
-
         mTimer = new Timer(
             async _ => await this.DoWork(), 
             null, 
@@ -32,11 +30,9 @@ internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
 
     private async Task DoWork()
     {
-        mLogger.LogInformation("UpdateBatteryDischargeLimitService is working");
-
         try
         {
-            await mLuxSerice.UpdateBattery();
+            await mLuxService.UpdateBattery();
         } 
         catch (JsonException ex)
         {
@@ -46,8 +42,6 @@ internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
 
     public Task StopAsync(CancellationToken stoppingToken)
     {
-        mLogger.LogInformation("UpdateBatteryDischargeLimitService is stopping.");
-
         mTimer?.Change(Timeout.Infinite, 0);
         mTimer?.Dispose();
         mTimer = null;
