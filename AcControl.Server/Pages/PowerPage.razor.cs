@@ -3,6 +3,7 @@ namespace AcControl.Server.Pages;
 using AcControl.Server.Data;
 using AcControl.Server.Data.Models;
 using ApexCharts;
+using Microsoft.AspNetCore.Components;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -86,6 +87,19 @@ public partial class PowerPage
         }
 
         mChartDate = mChartDate.AddDays(1);
+
+        await this.UpdateData();
+    }
+
+    private async Task DatePicker_Input(ChangeEventArgs e)
+    {
+        var value = e.Value as string;
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        mChartDate = DateOnly.Parse(value);
 
         await this.UpdateData();
     }

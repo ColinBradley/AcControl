@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using MQTTnet.AspNetCore;
+using MQTTnet.Protocol;
+using MQTTnet.Server;
+using MQTTnet.Server.Disconnecting;
 using System.Text.Json;
 using Yarp.ReverseProxy.Transforms;
 
@@ -129,28 +132,29 @@ app.UseMqttServer(
     {
         server.ValidatingConnectionAsync += e =>
         {
-            Console.WriteLine("ValidatingConnectionAsync: " + JsonSerializer.Serialize(e));
+            Console.WriteLine("MQTT ValidatingConnectionAsync: " + JsonSerializer.Serialize(e));
 
             if (!string.Equals(e.Password, builder.Configuration.GetValue<string>("Mqtt:Password"), StringComparison.Ordinal)) {
-                e.ReasonCode = MQTTnet.Protocol.MqttConnectReasonCode.BadUserNameOrPassword;
+                e.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
             }
             
             return Task.CompletedTask;
         };
 
-        server.ApplicationMessageNotConsumedAsync += e =>
+        app.Lifetime.ApplicationStopping.Register(async () =>
         {
-            Console.WriteLine("ApplicationMessageNotConsumedAsync: " + JsonSerializer.Serialize(e));
-
-            return Task.CompletedTask;
-        };
-
-        server.InterceptingPublishAsync += e =>
-        {
-            Console.WriteLine("InterceptingPublishAsync: " + JsonSerializer.Serialize(e.ApplicationMessage));
-
-            return Task.CompletedTask;
-        };
+            // We have to manually stop the server, otherwise ASP will just wait for a while then stop it
+            // (Presumably trying a graceful stop of some kind that we're not handling?)
+            await server.StopAsync(
+                new MqttServerStopOptions()
+                {
+                    DefaultClientDisconnectOptions = new MqttServerClientDisconnectOptions()
+                    {
+                        ReasonCode = MqttDisconnectReasonCode.ServerShuttingDown,
+                    },
+                }
+            );
+        });
     });
 
 await using (var setupScope = app.Services.CreateAsyncScope())

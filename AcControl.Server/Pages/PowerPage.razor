@@ -116,11 +116,19 @@
     </ApexChart>
 </div>
 
-<div style="display: flex; gap: 1em; align-items: center; justify-content: space-between;">
+<div style="display:flex; gap:1em; align-items:center; justify-content:space-between;">
     <div style="align-self: start; display: flex; gap: 1em; align-items: center; flex-shrink:0;">
-        <button @onclick=PreviousDate_Click>&lt;</button>
-        @this.DateAsText
-        <button @onclick=NextDate_Click disabled="@(this.DateAsText == LuxPowerTekService.TodaysDateString)">&gt;</button>
+        <button @onclick=PreviousDate_Click>
+            &lt;
+        </button>
+        <input type="date"
+               value="@this.DateAsText"
+               @oninput="this.DatePicker_Input"
+               max="@(DateTime.Now.ToString("yyyy-MM-dd"))"
+               style="text-align:center;" />
+        <button @onclick=NextDate_Click disabled="@(this.DateAsText == LuxPowerTekService.TodaysDateString)">
+            &gt;
+        </button>
     </div>
 
     <div>

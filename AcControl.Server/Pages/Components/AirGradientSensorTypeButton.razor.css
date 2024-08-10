@@ -1,0 +1,13 @@
+﻿button {
+	color: white;
+	border: solid 1px #fff4;
+	background-color: #fff1;
+	padding: .1em .6em;
+	border-radius: .1em;
+	min-width: 10ch;
+	opacity: .5;
+}
+
+	button.active, button:hover {
+		opacity: 1;
+	}

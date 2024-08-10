@@ -1,0 +1,18 @@
+﻿@using AcControl.Server.Data.Models
+
+<button class="@(this.ActiveSensorType == this.SensorType ? "active": "")" 
+    @onclick="e => this.Click!(this.SensorType)">
+    @AirPage.HumanName(this.SensorType)
+</button>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public AirGradientSensorType SensorType { get; set; }
+
+    [CascadingParameter]
+    public AirGradientSensorType? ActiveSensorType { get; set; }
+
+    [CascadingParameter]
+    protected Func<AirGradientSensorType, Task>? Click { get; set; } = (_) => Task.CompletedTask;
+}

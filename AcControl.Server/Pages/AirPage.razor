@@ -3,6 +3,7 @@
 @using AcControl.Server.Data
 @using AcControl.Server.Data.Models
 @using static AcControl.Server.Data.LuxPowerTekService
+@using AcControl.Server.Pages.Components
 @using ApexCharts
 @using Microsoft.EntityFrameworkCore
 
@@ -11,12 +12,6 @@
 <PageTitle>Oal Home Air</PageTitle>
 
 <h1>Air</h1>
-
-<div style="display:flex; gap:1em; align-items:center; margin-top:1em;">
-    <input type="date" value="@this.DateAsText" @oninput="this.DatePicker_Input" />
-
-    <button @onclick="this.RefreshButton_Click">Refresh</button>
-</div>
 
 <ApexChart Height="400" Options="this.ChartOptions" @ref="this.Chart">
     @foreach (var entryBySerial in this.CurrentDayEntries.GroupBy(e => e.SerialNumber))
@@ -29,6 +24,12 @@
             "84fce60705c4" => "Bedroom",
             _ => $"Unknown ({entryBySerial.Key})",
         });
+        var colour = entryBySerial.Key switch
+        {
+            "404cca68ed94" => "#c7f464",
+            "84fce60705c4" => "#3a9a93",
+            _ => null,
+        };
 
         Func<AirGradientSensorEntry, decimal?> valueFetcher = this.ActiveSensorType switch
         {
@@ -51,21 +52,50 @@
         <ApexPointSeries Items="entryBySerial"
                          Name="@name"
                          SeriesType="SeriesType.Line"
-                         Color="@(entryBySerial.Key switch
-        {
-            "404cca68ed94" => "#c7f464",
-            "84fce60705c4" => "#3a9a93",
-            _ => null,
-        })"
+                         Color="@colour"
                          XValue="e => e.DateTime.ToLocalTime()"
                          YValue="valueFetcher" />
     }
 </ApexChart>
 
-<div style="display:flex; gap:1em; flex-wrap:wrap;">
+<div style="display:flex; gap:2em; flex-wrap:wrap; align-items: start;">
+    <div style="display:flex; gap:1em; align-items:center;">
+        <button @onclick="this.PreviousDate_Click">
+            &lt;
+        </button>
+        <input type="date"
+               value="@this.DateAsText"
+               @oninput="this.DatePicker_Input"
+               max="@(DateTime.Now.ToString("yyyy-MM-dd"))"
+               style="text-align:center;" />
+        <button @onclick="this.NextDate_Click" disabled="@(this.DateAsText == LuxPowerTekService.TodaysDateString)">
+            &gt;
+        </button>
+        <button @onclick="this.RefreshButton_Click">
+            Refresh
+        </button>
+    </div>
 
-    @foreach (var type in Enum.GetValues<AirGradientSensorType>())
-    {
-        <button @onclick="_ => this.SensorTypeButton_Click(type)">@HumanName(type)</button>
-    }
+    <CascadingValue Value="this.ActiveSensorType">
+        <CascadingValue Value="(Func<AirGradientSensorType, Task>)this.SensorTypeButton_Click">
+            <div style="display:flex; gap:.5em; flex-direction:column; flex-wrap:wrap;">
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Atmp" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Rhum" />
+            </div>
+            <div style="display:grid; gap:.5em; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);">
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Pm01" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Pm02" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Pm10" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.Pm003Count" />
+            </div>
+            <div style="display:grid; gap:.5em; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);">
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.RCo2" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.TvocRaw" />
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.NoxRaw" />
+            </div>
+            <div style="display:flex; gap:.5em; flex-direction:column; flex-wrap:wrap;">
+                <AirGradientSensorTypeButton SensorType="AirGradientSensorType.WiFiStrength" />
+            </div>
+        </CascadingValue>
+    </CascadingValue>
 </div>

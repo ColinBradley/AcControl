@@ -6,15 +6,14 @@ using Microsoft.EntityFrameworkCore;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Protocol;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
-internal class AirGradientMqttRecorder : IHostedService
+internal class AirGradientMqttRecorder : BackgroundService
 {
     private readonly IServiceScopeFactory mScopeFactory;
     private readonly IConfiguration mConfig;
     private readonly IDbContextFactory<HomeDbContext> mDbContextFactory;
-
-    private IMqttClient? mClient;
 
     public AirGradientMqttRecorder(IServiceScopeFactory scopeFactory, IConfiguration config, IDbContextFactory<HomeDbContext> dbContextFactory)
     {
@@ -23,89 +22,76 @@ internal class AirGradientMqttRecorder : IHostedService
         mDbContextFactory = dbContextFactory;
     }
 
-    public Task StartAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Task.Run(async () =>
+        using var client = new MqttFactory().CreateMqttClient();
+
+        // Setup message handling before connecting so that queued messages
+        // are also handled properly. When there is no event handler attached all
+        // received messages get lost.
+        client.ApplicationMessageReceivedAsync += async e =>
         {
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            var update = JsonSerializer.Deserialize<AirGradientUpdate>(e.ApplicationMessage.PayloadSegment.ToArray())!;
 
-            var client = new MqttFactory().CreateMqttClient();
+            Console.WriteLine("ApplicationMessageReceivedAsync: " + e.ApplicationMessage.Topic);
 
-            // Setup message handling before connecting so that queued messages
-            // are also handled properly. When there is no event handler attached all
-            // received messages get lost.
-            client.ApplicationMessageReceivedAsync += async e =>
+            if (update.Atmp < -50)
             {
-                var update = System.Text.Json.JsonSerializer.Deserialize<AirGradientUpdate>(e.ApplicationMessage.PayloadSegment.ToArray())!;
-
-                Console.WriteLine("ApplicationMessageReceivedAsync: " + e.ApplicationMessage.Topic);
-
-                await using var homeDbContext = await mDbContextFactory.CreateDbContextAsync();
-                
-                homeDbContext.AirGradientSensorEntries.Add(
-                    new AirGradientSensorEntry()
-                    {
-                        DateTime = DateTime.UtcNow,
-                        SerialNumber = update.SerialNumber,
-                        Atmp = update.Atmp,
-                        AtmpCompensated = update.AtmpCompensated,
-                        NoxIndex = update.NoxIndex,
-                        NoxRaw = update.NoxRaw,
-                        Pm003Count = update.Pm003Count,
-                        Pm01 = update.Pm01,
-                        Pm02 = update.Pm02,
-                        Pm10 = update.Pm10,
-                        RCo2 = update.RCo2,
-                        Rhum = update.RHum,
-                        RhumCompensated = update.RhumCompensated,
-                        TvocIndex = update.TvocIndex,
-                        TvocRaw = update.TvocRaw,
-                        WiFiStrength = update.WiFiStrength,
-                    }
-                );
-
-                await homeDbContext.SaveChangesAsync();
-            };
-
-            try
-            {
-                await client.ConnectAsync(
-                    new MqttClientOptionsBuilder()
-                        .WithTcpServer("localhost")
-                        .WithCredentials("local", mConfig.GetValue<string>("Mqtt:Password"))
-                        .Build(),
-                    stoppingToken
-                );
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync(ex.ToString());
+                Console.WriteLine("ApplicationMessageReceivedAsync: Ignoring bad entry " + JsonSerializer.Serialize(update));
+                return;
             }
 
-            mClient = client;
+            await using var homeDbContext = await mDbContextFactory.CreateDbContextAsync();
 
-            await client.SubscribeAsync(
-                "airgradient/readings/+",
-                MqttQualityOfServiceLevel.AtLeastOnce,
+            homeDbContext.AirGradientSensorEntries.Add(
+                new AirGradientSensorEntry()
+                {
+                    DateTime = DateTime.UtcNow,
+                    SerialNumber = update.SerialNumber,
+                    Atmp = update.Atmp,
+                    AtmpCompensated = update.AtmpCompensated,
+                    NoxIndex = update.NoxIndex,
+                    NoxRaw = update.NoxRaw,
+                    Pm003Count = update.Pm003Count,
+                    Pm01 = update.Pm01,
+                    Pm02 = update.Pm02,
+                    Pm10 = update.Pm10,
+                    RCo2 = update.RCo2,
+                    Rhum = update.RHum,
+                    RhumCompensated = update.RhumCompensated,
+                    TvocIndex = update.TvocIndex,
+                    TvocRaw = update.TvocRaw,
+                    WiFiStrength = update.WiFiStrength,
+                }
+            );
+
+            await homeDbContext.SaveChangesAsync();
+        };
+
+        try
+        {
+            await client.ConnectAsync(
+                new MqttClientOptionsBuilder()
+                    .WithTcpServer("localhost")
+                    .WithCredentials("local", mConfig.GetValue<string>("Mqtt:Password"))
+                    .Build(),
                 stoppingToken
             );
-        });
-
-        return Task.CompletedTask;
-    }
-
-    public async Task StopAsync(CancellationToken stoppingToken)
-    {
-        if (mClient is not null)
-        {
-            await mClient.DisconnectAsync(new MqttClientDisconnectOptions(), stoppingToken);
         }
-    }
+        catch (Exception ex)
+        {
+            await Console.Error.WriteLineAsync(ex.ToString());
+        }
 
-    public void Dispose()
-    {
-        mClient?.Dispose();
-        mClient = null;
+        await client.SubscribeAsync(
+            "airgradient/readings/+",
+            MqttQualityOfServiceLevel.AtLeastOnce,
+            stoppingToken
+        );
+
+        var silly = new TaskCompletionSource();
+        stoppingToken.Register(silly.SetResult);
+        await silly.Task;
     }
 }
 
