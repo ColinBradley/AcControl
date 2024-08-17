@@ -177,3 +177,14 @@ public record InverterDaySummaryPoint
     public int Minute { get; set; }
     public int Second { get; set; }
 }
+
+public record InverterDaySummary
+{
+    public required int SolarPv { get; init; }
+    
+    public required int GridPower { get; init; }
+    
+    public required int Consumption { get; init; }
+
+    public required DateOnly Day { get; init; }
+}

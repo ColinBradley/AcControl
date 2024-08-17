@@ -1,0 +1,35 @@
+﻿@page "/power/summary"
+
+@using AcControl.Server.Data
+@using AcControl.Server.Data.Models
+@using ApexCharts
+@using Microsoft.EntityFrameworkCore
+
+@inject IDbContextFactory<HomeDbContext> Db
+
+<PageTitle>Oal Home Power Summary</PageTitle>
+
+<h1>Power Over The Past Year</h1>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr);">
+    <ApexChart Height="400" Options="this.ChartOptions" @ref="this.Chart">
+        <ApexPointSeries Items="this.Summary"
+                         Name="Consumption"
+                         Color="#ffa46177"
+                         SeriesType="SeriesType.Line"
+                         XValue="@(e => e.Day.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd HH:mm:ss"))"
+                         YValue="e=> e.Consumption / 1000" />
+        <ApexPointSeries Items="this.Summary"
+                         Name="Solar"
+                         SeriesType="SeriesType.Line"
+                         XValue="@(e => e.Day.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd HH:mm:ss"))"
+                         Color="#70ad4677"
+                         YValue="e=> e.SolarPv / 1000" />
+        <ApexPointSeries Items="this.Summary"
+                         Name="Grid"
+                         Color="#f6686755"
+                         SeriesType="SeriesType.Line"
+                         XValue="@(e => e.Day.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd HH:mm:ss"))"
+                         YValue="e=> e.GridPower / 1000" />
+    </ApexChart>
+</div>
