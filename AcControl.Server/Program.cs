@@ -25,11 +25,10 @@ builder.Services
     .AddMicrosoftIdentityUI();
 
 builder.Services
-    .AddRazorPages();
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-builder.Services
-    .AddServerSideBlazor()
-    .AddMicrosoftIdentityConsentHandler();
+builder.Services.AddAntiforgery();
 
 var dbConnectionString = new SqliteConnectionStringBuilder() { DataSource = "./HomeData.sqlite" }.ToString();
 builder.Services
@@ -120,12 +119,15 @@ app.UseHttpsRedirection();
 
 app.MapReverseProxy();
 
-app.UseStaticFiles();
+app.MapStaticAssets();
 app.UseRouting();
 
 app.MapControllers();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.UseAntiforgery();
 
 app.UseMqttServer(
     server =>
