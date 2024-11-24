@@ -124,7 +124,7 @@ app.UseRouting();
 
 app.MapControllers();
 
-app.MapRazorComponents<App>()
+app.MapRazorComponents<AcControl.Server.App>()
     .AddInteractiveServerRenderMode();
 
 app.UseAntiforgery();
