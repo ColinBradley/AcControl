@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="@Assets["css/site.css"]" />
     <link rel="stylesheet" href="@Assets["AcControl.Server.styles.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" href="@Assets["favicon.ico"]" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
@@ -17,7 +17,7 @@
     <Routes @rendermode="InteractiveServer" />
 
     <script src="_framework/blazor.web.js"></script>
-    <script src="_content/BlazorTime/blazorTime.js"></script>
+    <script src="@Assets["_content/BlazorTime/blazorTime.js"]"></script>
 </body>
 
 </html>
