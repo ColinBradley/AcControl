@@ -9,8 +9,6 @@ using Microsoft.Identity.Web.UI;
 using MQTTnet.AspNetCore;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
-using MQTTnet.Server.Disconnecting;
-using System.Text.Json;
 using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -134,8 +132,6 @@ app.UseMqttServer(
     {
         server.ValidatingConnectionAsync += e =>
         {
-            Console.WriteLine("MQTT ValidatingConnectionAsync: " + JsonSerializer.Serialize(e));
-
             if (!string.Equals(e.Password, builder.Configuration.GetValue<string>("Mqtt:Password"), StringComparison.Ordinal)) {
                 e.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
             }

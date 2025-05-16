@@ -4,8 +4,8 @@ using AcControl.Server.Data;
 using AcControl.Server.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using MQTTnet;
-using MQTTnet.Client;
 using MQTTnet.Protocol;
+using System.Buffers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,14 +24,14 @@ internal class AirGradientMqttRecorder : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var client = new MqttFactory().CreateMqttClient();
+        using var client = new MqttClientFactory().CreateMqttClient();
 
         // Setup message handling before connecting so that queued messages
         // are also handled properly. When there is no event handler attached all
         // received messages get lost.
         client.ApplicationMessageReceivedAsync += async e =>
         {
-            var update = JsonSerializer.Deserialize<AirGradientUpdate>(e.ApplicationMessage.PayloadSegment.ToArray())!;
+            var update = JsonSerializer.Deserialize<AirGradientUpdate>(System.Text.Encoding.UTF8.GetString(e.ApplicationMessage.Payload.ToArray()))!;
 
             Console.WriteLine("ApplicationMessageReceivedAsync: " + e.ApplicationMessage.Topic);
 
