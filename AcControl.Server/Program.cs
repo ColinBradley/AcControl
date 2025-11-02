@@ -9,6 +9,10 @@ using Microsoft.Identity.Web.UI;
 using MQTTnet.AspNetCore;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
+using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,6 +65,35 @@ builder.Services
         options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
     });
 
+builder.Services.Configure<OtlpExporterOptions>(
+    builder.Configuration.GetSection("OpenTelemetryExporter"));
+
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeFormattedMessage = true;
+    logging.IncludeScopes = true;
+});
+
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddMeter("*")
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddRuntimeInstrumentation()
+            .AddProcessInstrumentation();
+    })
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddSource("*")
+            .AddAspNetCoreInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
+            .AddHttpClientInstrumentation();
+    })
+    .UseOtlpExporter();
+
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
@@ -86,7 +119,7 @@ builder.WebHost.UseKestrel(k =>
     {
         _ = h.UseLettuceEncrypt(k.ApplicationServices);
     });
-    
+
     k.ListenAnyIP(1883, l => l.UseMqtt());
     k.ListenAnyIP(443, l => l.UseHttps());
 });
@@ -132,10 +165,11 @@ app.UseMqttServer(
     {
         server.ValidatingConnectionAsync += e =>
         {
-            if (!string.Equals(e.Password, builder.Configuration.GetValue<string>("Mqtt:Password"), StringComparison.Ordinal)) {
+            if (!string.Equals(e.Password, builder.Configuration.GetValue<string>("Mqtt:Password"), StringComparison.Ordinal))
+            {
                 e.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
             }
-            
+
             return Task.CompletedTask;
         };
 
