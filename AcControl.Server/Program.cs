@@ -9,7 +9,6 @@ using Microsoft.Identity.Web.UI;
 using MQTTnet.AspNetCore;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
-using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -82,7 +81,14 @@ builder.Services.AddOpenTelemetry()
             .AddAspNetCoreInstrumentation()
             .AddHttpClientInstrumentation()
             .AddRuntimeInstrumentation()
-            .AddProcessInstrumentation();
+            .AddProcessInstrumentation()
+            .AddOtlpExporter(
+                (exporterOptions, readerOptions) =>
+                {
+                    readerOptions.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
+                    readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 5_000;
+                }
+            );
     })
     .WithTracing(tracing =>
     {
@@ -90,9 +96,9 @@ builder.Services.AddOpenTelemetry()
             .AddSource("*")
             .AddAspNetCoreInstrumentation()
             .AddEntityFrameworkCoreInstrumentation()
-            .AddHttpClientInstrumentation();
-    })
-    .UseOtlpExporter();
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter();
+    });
 
 builder.Services
     .AddReverseProxy()
