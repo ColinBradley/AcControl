@@ -58,12 +58,6 @@ builder.Services
     .AddHostedService<UpdateBatteryDischargeLimitService>()
     .AddHostedService<AirGradientMqttRecorder>();
 
-builder.Services
-    .AddApplicationInsightsTelemetry(options =>
-    {
-        options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-    });
-
 builder.Services.Configure<OtlpExporterOptions>(
     builder.Configuration.GetSection("OpenTelemetryExporter"));
 
@@ -86,7 +80,7 @@ builder.Services.AddOpenTelemetry()
                 (exporterOptions, readerOptions) =>
                 {
                     readerOptions.TemporalityPreference = MetricReaderTemporalityPreference.Delta;
-                    readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 5_000;
+                    readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 1_000;
                 }
             );
     })

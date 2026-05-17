@@ -198,7 +198,7 @@ public partial class AirPage
         var start = end.AddDays(-1.1);
 
         this.CurrentDayEntries = context.AirGradientSensorEntries.Where(e => e.DateTime > start && e.DateTime < end).OrderBy(e => e.DateTime).ToArray();
-        
+
         // TODO: Should be able to remove this after initial cleanse
         var badEntries = this.CurrentDayEntries.Where(e => e.Atmp < -50).ToArray();
         if (badEntries.Length > 0)
@@ -217,7 +217,7 @@ public partial class AirPage
                     {
                         await this.Chart.RenderAsync();
                     }
-                    catch (NullReferenceException ex)
+                    catch (NullReferenceException)
                     {
                         // ¬_¬
                     }
@@ -251,10 +251,10 @@ public partial class AirPage
             _ => null,
         };
 
-        this.ChartOptions.Annotations.Yaxis = this.ActiveSensorType switch 
-        { 
-            AirGradientSensorType.RCo2 => mCO2Annotations, 
-            _ => null, 
+        this.ChartOptions.Annotations.Yaxis = this.ActiveSensorType switch
+        {
+            AirGradientSensorType.RCo2 => mCO2Annotations,
+            _ => null,
         };
     }
 

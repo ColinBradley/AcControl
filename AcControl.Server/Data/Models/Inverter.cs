@@ -56,7 +56,7 @@ public record InverterData
     public int PlantId { get; set; }
     public int SubDeviceType { get; set; }
     public required string SohText { get; set; }
-    public required string EndUser { get; set; }
+    public string? EndUser { get; set; }
     public int BatParallelNum { get; set; }
     public required string PowerRatingText { get; set; }
     public required string PlantName { get; set; }
@@ -181,9 +181,9 @@ public record InverterDaySummaryPoint
 public record InverterDaySummary
 {
     public required int SolarPv { get; init; }
-    
+
     public required int GridPower { get; init; }
-    
+
     public required int Consumption { get; init; }
 
     public required DateOnly Day { get; init; }

@@ -119,7 +119,7 @@ public partial class PowerPage
 
             _ = this.InvokeAsync(this.StateHasChanged);
 
-            if (summary.Length == 0 && ++blankCount > 15)
+            if (summary.Length == 0 && ++blankCount > 90)
             {
                 break;
             }
