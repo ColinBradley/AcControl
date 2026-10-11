@@ -1,3 +1,4 @@
+using AcControl.Server.Telemetry;
 using System.Text.Json.Serialization;
 
 namespace AcControl.Server.Data
@@ -32,6 +33,8 @@ namespace AcControl.Server.Data
 
         public async Task<LoginSuccessResponse> TryGetAccessToken(CancellationToken cancellationToken)
         {
+            using var activity = AcControlServerTelemetry.Source.Start();
+
             var httpClient = mHttpClientFactory.CreateClient();
 
             var result = await httpClient.PostAsJsonAsync(
@@ -39,6 +42,14 @@ namespace AcControl.Server.Data
                 new { this.Username, this.Password },
                 cancellationToken
             );
+
+            if (!result.IsSuccessStatusCode)
+            {
+                var bodyAsString = await result.Content.ReadAsStringAsync(cancellationToken);
+                await Console.Error.WriteLineAsync(bodyAsString);
+
+                activity?.SetTag("http.response.body", bodyAsString);
+            }
 
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<LoginSuccessResponse>>(cancellationToken: cancellationToken);
 
@@ -74,7 +85,7 @@ namespace AcControl.Server.Data
             });
 
             var result = await httpClient.SendAsync(request, cancellationToken);
-            
+
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<DeviceRegistration>>(cancellationToken: cancellationToken);
 
             return body?.ResObj;

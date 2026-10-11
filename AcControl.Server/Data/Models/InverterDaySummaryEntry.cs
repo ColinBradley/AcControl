@@ -18,10 +18,10 @@ public class InverterDaySummaryEntryConfiguration : IEntityTypeConfiguration<Inv
     public void Configure(EntityTypeBuilder<InverterDaySummaryEntry> builder)
     {
         // This Converter will perform the conversion to and from Json to the desired type
-        builder.Property(e => e.Entries).HasConversion(
+        _ = builder.Property(e => e.Entries).HasConversion(
             v => JsonSerializer.Serialize(v, new JsonSerializerOptions()),
-            v => 
-                JsonSerializer.Deserialize<InverterDaySummaryPoint[]>(v, new JsonSerializerOptions()) 
+            v =>
+                JsonSerializer.Deserialize<InverterDaySummaryPoint[]>(v, new JsonSerializerOptions())
                 ?? Array.Empty<InverterDaySummaryPoint>()
             );
     }

@@ -19,8 +19,8 @@ internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
     public Task StartAsync(CancellationToken stoppingToken)
     {
         mTimer = new Timer(
-            async _ => await this.DoWork(), 
-            null, 
+            async _ => await this.DoWork(),
+            null,
             TimeSpan.Zero,
             TimeSpan.FromHours(1)
         );
@@ -33,10 +33,14 @@ internal class UpdateBatteryDischargeLimitService : IHostedService, IDisposable
         try
         {
             await mLuxService.UpdateBattery();
-        } 
+        }
         catch (JsonException ex)
         {
             File.WriteAllText("./SomeOtherIssue.txt", ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText("./SomeOtherIssueThatsBoomy.txt", ex.ToString());
         }
     }
 
