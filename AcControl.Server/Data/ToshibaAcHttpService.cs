@@ -1,10 +1,14 @@
 using AcControl.Server.Telemetry;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AcControl.Server.Data
 {
     public class ToshibaAcHttpService
     {
+        public const string HTTP_CLIENT_NAME = "ToshibaAc";
         private const string BASE_ADDRESS = "https://mobileapi.toshibahomeaccontrols.com";
         private const string LOGIN_PATH = "/api/Consumer/Login";
         private const string MAPPING_PATH = "/api/AC/GetConsumerACMapping";
@@ -35,36 +39,78 @@ namespace AcControl.Server.Data
         {
             using var activity = AcControlServerTelemetry.Source.Start();
 
-            var httpClient = mHttpClientFactory.CreateClient();
+            if (string.IsNullOrWhiteSpace(this.Username) || string.IsNullOrWhiteSpace(this.Password)
+                || string.IsNullOrWhiteSpace(this.DeviceId))
+            {
+                throw new InvalidOperationException("Configure Toshiba:Username, Toshiba:Password and Toshiba:DeviceId before logging in.");
+            }
 
-            var result = await httpClient.PostAsJsonAsync(
-                BASE_ADDRESS + LOGIN_PATH,
-                new { this.Username, this.Password },
-                cancellationToken
-            );
+            using var httpClient = mHttpClientFactory.CreateClient(HTTP_CLIENT_NAME);
+
+            using var request = this.CreateRequest(HttpMethod.Post, LOGIN_PATH);
+            request.Content = JsonContent.Create(new LoginBody(this.Username, this.Password));
+
+            using var result = await httpClient.SendAsync(request, cancellationToken);
+
+            activity?.SetTag("http.response.status_code", (int)result.StatusCode);
 
             if (!result.IsSuccessStatusCode)
             {
-                var bodyAsString = await result.Content.ReadAsStringAsync(cancellationToken);
-                await Console.Error.WriteLineAsync(bodyAsString);
+                var retryAfter = result.Headers.RetryAfter?.Delta
+                    ?? (result.Headers.RetryAfter?.Date - DateTimeOffset.UtcNow);
+                if (retryAfter < TimeSpan.Zero)
+                {
+                    retryAfter = TimeSpan.Zero;
+                }
 
-                activity?.SetTag("http.response.body", bodyAsString);
+                // Error responses can contain account details. Keep raw bodies out of logs and telemetry.
+                throw new ToshibaAcLoginException(
+                    $"Toshiba login returned HTTP {(int)result.StatusCode}. No automatic retry was made.",
+                    result.StatusCode,
+                    retryAfter
+                );
             }
 
-            var body = await result.Content.ReadFromJsonAsync<MessageWrapper<LoginSuccessResponse>>(cancellationToken: cancellationToken);
+            MessageWrapper<LoginSuccessResponse>? body;
+            try
+            {
+                body = await result.Content.ReadFromJsonAsync<MessageWrapper<LoginSuccessResponse>>(cancellationToken: cancellationToken);
+            }
+            catch (Exception exception) when (exception is JsonException or NotSupportedException)
+            {
+                throw new ToshibaAcLoginException("Toshiba login returned an unreadable JSON response.", result.StatusCode);
+            }
 
-            return body!.ResObj!;
+            if (body?.IsSuccess != true)
+            {
+                var credentialError = body?.StatusCode.ValueKind == JsonValueKind.String
+                    && body.StatusCode.GetString() == "InvalidUserNameorPassword"
+                    || body?.Message?.Contains("password", StringComparison.OrdinalIgnoreCase) == true
+                    || body?.Message?.Contains("lock", StringComparison.OrdinalIgnoreCase) == true;
+                throw new ToshibaAcLoginException(
+                    credentialError
+                        ? "Toshiba rejected the credentials or reported an account lock. No automatic retry was made."
+                        : "Toshiba reported an unsuccessful login. No automatic retry was made.",
+                    result.StatusCode);
+            }
+
+            if (string.IsNullOrWhiteSpace(body.ResObj?.AccessToken) || string.IsNullOrWhiteSpace(body.ResObj.ConsumerId))
+            {
+                throw new ToshibaAcLoginException("Toshiba login response is missing an access token or consumer ID.", result.StatusCode);
+            }
+
+            return body.ResObj;
         }
 
         public async Task<AirConditionerUnitDetails[]> GetAirConditionerUnits(CancellationToken cancellationToken)
         {
-            var httpClient = mHttpClientFactory.CreateClient();
+            using var httpClient = mHttpClientFactory.CreateClient(HTTP_CLIENT_NAME);
             var login = await this.LoginToken.Value;
 
-            var request = new HttpRequestMessage(HttpMethod.Get, BASE_ADDRESS + MAPPING_PATH + "?consumerId=" + login.ConsumerId);
+            using var request = this.CreateRequest(HttpMethod.Get, MAPPING_PATH + "?consumerId=" + Uri.EscapeDataString(login.ConsumerId!));
             request.Headers.Add("Authorization", $"Bearer {login.AccessToken}");
 
-            var result = await httpClient.SendAsync(request, cancellationToken);
+            using var result = await httpClient.SendAsync(request, cancellationToken);
 
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<AirConditionerGroup[]>>(cancellationToken: cancellationToken);
 
@@ -73,10 +119,10 @@ namespace AcControl.Server.Data
 
         public async Task<DeviceRegistration?> RegisterDevice(CancellationToken cancellationToken)
         {
-            var httpClient = mHttpClientFactory.CreateClient();
+            using var httpClient = mHttpClientFactory.CreateClient(HTTP_CLIENT_NAME);
             var login = await this.LoginToken.Value;
 
-            var request = new HttpRequestMessage(HttpMethod.Post, BASE_ADDRESS + REGISTER_DEVICE_PATH);
+            using var request = this.CreateRequest(HttpMethod.Post, REGISTER_DEVICE_PATH);
             request.Headers.Add("Authorization", $"Bearer {login.AccessToken}");
             request.Content = JsonContent.Create(new RegisterDeviceBody()
             {
@@ -84,12 +130,24 @@ namespace AcControl.Server.Data
                 DeviceId = this.Username + "_" + this.DeviceId,
             });
 
-            var result = await httpClient.SendAsync(request, cancellationToken);
+            using var result = await httpClient.SendAsync(request, cancellationToken);
 
             var body = await result.Content.ReadFromJsonAsync<MessageWrapper<DeviceRegistration>>(cancellationToken: cancellationToken);
 
             return body?.ResObj;
         }
+
+        private HttpRequestMessage CreateRequest(HttpMethod method, string path)
+        {
+            var request = new HttpRequestMessage(method, BASE_ADDRESS + path);
+            // Match the stable device identity used by the maintained community client.
+            request.Headers.Add("Device-ID", this.DeviceId);
+            return request;
+        }
+
+        private sealed record LoginBody(
+            [property: JsonPropertyName("Username")] string Username,
+            [property: JsonPropertyName("Password")] string Password);
 
         private class MessageWrapper<T>
         {
@@ -98,11 +156,8 @@ namespace AcControl.Server.Data
             public bool IsSuccess { get; set; }
 
             public string? Message { get; set; }
-        }
 
-        private class LoginErrorResponse
-        {
-            public string Error { get; set; } = "";
+            public JsonElement StatusCode { get; set; }
         }
 
         private class AirConditionerGroup
@@ -133,8 +188,10 @@ namespace AcControl.Server.Data
         [JsonPropertyName("access_token")]
         public string? AccessToken { get; set; }
 
+        [JsonPropertyName("token_type")]
         public string? TokenType { get; set; }
 
+        [JsonPropertyName("expires_in")]
         public double ExpiresIn { get; set; }
 
         public string? ConsumerId { get; set; }
@@ -142,6 +199,17 @@ namespace AcControl.Server.Data
         public int CountryId { get; set; }
 
         public string? ConsumerMasterId { get; set; }
+    }
+
+    public sealed class ToshibaAcLoginException : HttpRequestException
+    {
+        public ToshibaAcLoginException(string message, HttpStatusCode statusCode, TimeSpan? retryAfter = null)
+            : base(message, null, statusCode)
+        {
+            this.RetryAfter = retryAfter;
+        }
+
+        public TimeSpan? RetryAfter { get; }
     }
 
     public class AirConditionerUnitDetails

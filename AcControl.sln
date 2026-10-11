@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcControl.ToshibaDiagnostics", "AcControl.ToshibaDiagnostics\AcControl.ToshibaDiagnostics.csproj", "{156AEF93-8B2C-4580-8C2E-1C3B555D7FDA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{D509C9ED-FCF9-4BC2-B59A-8E18D3EE62E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D509C9ED-FCF9-4BC2-B59A-8E18D3EE62E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D509C9ED-FCF9-4BC2-B59A-8E18D3EE62E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{156AEF93-8B2C-4580-8C2E-1C3B555D7FDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{156AEF93-8B2C-4580-8C2E-1C3B555D7FDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{156AEF93-8B2C-4580-8C2E-1C3B555D7FDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{156AEF93-8B2C-4580-8C2E-1C3B555D7FDA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

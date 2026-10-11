@@ -38,6 +38,14 @@ builder.Services
     );
 
 builder.Services
+    .AddHttpClient(ToshibaAcHttpService.HTTP_CLIENT_NAME, client => client.Timeout = TimeSpan.FromSeconds(30))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+    {
+        AllowAutoRedirect = false,
+        UseCookies = false,
+    });
+
+builder.Services
     .AddHttpClient(LuxPowerTekService.HTTP_CLIENT_NAME)
     .ConfigurePrimaryHttpMessageHandler(
         () => new HttpClientHandler()

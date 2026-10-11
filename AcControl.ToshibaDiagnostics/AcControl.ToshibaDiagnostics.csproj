@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Deliberately share the server's existing secret store; never copy credentials. -->
+    <UserSecretsId>aspnet-AcControl.Server-B843B309-AC75-46BF-8ABB-B4A116BCB996</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- Compile the real HTTP service without building or starting the website. -->
+    <Compile Include="..\AcControl.Server\Data\ToshibaAcHttpService.cs" Link="ToshibaAcHttpService.cs" />
+    <Compile Include="..\AcControl.Server\Telemetry\AcControlServerTelemetry.cs" Link="AcControlServerTelemetry.cs" />
+    <Compile Include="..\AcControl.Server\Telemetry\ActivitySourceExtensions.cs" Link="ActivitySourceExtensions.cs" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+    <AssemblyMetadata Include="DiagnosticsStateDirectory" Value="$(MSBuildProjectDirectory)\obj" />
+  </ItemGroup>
+</Project>
