@@ -123,13 +123,8 @@ builder.Services.AddHostedMqttServer(
 
 builder.WebHost.UseKestrel(k =>
 {
-    k.ConfigureHttpsDefaults(h =>
-    {
-        _ = h.UseLettuceEncrypt(k.ApplicationServices);
-    });
-
     k.ListenAnyIP(1883, l => l.UseMqtt());
-    k.ListenAnyIP(443, l => l.UseHttps());
+    k.ListenAnyIP(443, l => l.UseLettuceEncrypt(k.ApplicationServices));
 });
 
 var app = builder.Build();
